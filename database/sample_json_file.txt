@@ -1,3 +1,5 @@
+filename: <int: guild.id>.json
+
 {
     "guild_id": <int: guild.id>,
     "guild_name": <str: guild.name>,

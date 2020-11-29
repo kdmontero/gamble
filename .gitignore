@@ -1,4 +1,3 @@
 private.py
 *.json
-!<guild.id>.json
 __pycache__/
