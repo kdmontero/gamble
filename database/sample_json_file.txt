@@ -10,7 +10,7 @@ filename: <int: guild.id>.json
             "coins": <int>,
             "wins": <int>,
             "losses": <int>,
-            "donation": <int>,
+            "transfer": <int>,
             "claim": <bool>
         },
         {
@@ -19,7 +19,7 @@ filename: <int: guild.id>.json
             "coins": <int>,
             "wins": <int>,
             "losses": <int>,
-            "donation": <int>,
+            "transfer": <int>,
             "claim": <bool>
         }
     ]

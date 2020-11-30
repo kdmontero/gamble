@@ -57,7 +57,7 @@ class BotEvents(commands.Cog):
                             member_data['coins'] = INITIAL_COINS
                             member_data['wins'] = 0
                             member_data['losses'] = 0
-                            member_data['donation'] = 0
+                            member_data['transfer'] = 0
                             member_data['claim'] = True
                             data['members'].append(member_data)            
                         else:
@@ -81,7 +81,7 @@ class BotEvents(commands.Cog):
                 member_data['coins'] = INITIAL_COINS
                 member_data['wins'] = 0
                 member_data['losses'] = 0
-                member_data['donation'] = 0
+                member_data['transfer'] = 0
                 member_data['claim'] = True
                 data['members'].append(member_data)
 
@@ -119,7 +119,7 @@ class BotEvents(commands.Cog):
                 new_member_data['coins'] = INITIAL_COINS
                 new_member_data['wins'] = 0
                 new_member_data['losses'] = 0
-                new_member_data['donation'] = 0
+                new_member_data['transfer'] = 0
                 new_member_data['claim'] = True
                 data['members'].append(new_member_data)
 
