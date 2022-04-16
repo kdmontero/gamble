@@ -3,24 +3,54 @@ filename: <int: guild.id>.json
 {
     "guild_id": <int: guild.id>,
     "guild_name": <str: guild.name>,
-    "members": [
-        {
-            "id": <int: member.id>,
+    "members": {
+        <str: member.id> : {
+	    "id": <int: member.id>,
             "display_name": <str: member.display_name>,
             "coins": <int>,
             "wins": <int>,
             "losses": <int>,
-            "transfer": <int>,
-            "claim": <bool>
+            "transfers": <int>,
+            "has_claimed": <bool>,
+            "wins_per_mem": {
+                <str: other_mem_1.id>: <int>,
+                <str: other_mem_2.id>: <int>,
+                <str: other_mem_3.id>: <int>,
+            },
+            "losses_per_mem": {
+                <str: other_mem_1.id>: <int>,
+                <str: other_mem_2.id>: <int>,
+                <str: other_mem_3.id>: <int>,
+            },
+            "transfers_per_mem": {
+                <str: other_mem_1.id>: <int>,
+                <str: other_mem_2.id>: <int>,
+                <str: other_mem_3.id>: <int>,
+            },
         },
-        {
-            "id": <int: member.id>,
+        <str: member.id> : {
+	    "id": <int: member.id>,
             "display_name": <str: member.display_name>,
             "coins": <int>,
             "wins": <int>,
             "losses": <int>,
-            "transfer": <int>,
-            "claim": <bool>
-        }
-    ]
+            "transfers": <int>,
+            "has_claimed": <bool>,
+            "wins_per_mem": {
+                <str: other_mem_1.id>: <int>,
+                <str: other_mem_2.id>: <int>,
+                <str: other_mem_3.id>: <int>,
+            },
+            "losses_per_mem": {
+                <str: other_mem_1.id>: <int>,
+                <str: other_mem_2.id>: <int>,
+                <str: other_mem_3.id>: <int>,
+            },
+            "transfers_per_mem": {
+                <str: other_mem_1.id>: <int>,
+                <str: other_mem_2.id>: <int>,
+                <str: other_mem_3.id>: <int>,
+            },
+        },
+    },
 }
