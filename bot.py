@@ -1,4 +1,4 @@
-import discord # pip install discord
+import discord
 from discord.ext import commands
 
 from const import COMMAND_PREFIX
