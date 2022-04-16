@@ -142,7 +142,7 @@ class BotEvents(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_member_update(self, before: Member, after: Member):
+    async def on_member_update(self, before: Member, after: Member) -> None:
         '''Changes the member name'''
         async with locks.get(before.guild.id):
             if before.display_name == after.display_name:

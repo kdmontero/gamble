@@ -187,7 +187,7 @@ class BotActionCommands(commands.Cog):
                     receiver = member
                     break
             
-            if sender == receiver or receiver = None:
+            if sender == receiver or receiver == None:
                 await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid recipient")
                 return
             
