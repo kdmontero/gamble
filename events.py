@@ -42,14 +42,20 @@ class BotEvents(commands.Cog):
         member: Member, 
         INITIAL_COINS: int
     ) -> None:
+
+        '''set the initial data for a non-existing member'''
         member_data = OrderedDict()
+        member_data['id'] = member.id
         member_data['display_name'] = member.display_name
         member_data['coins'] = INITIAL_COINS
         member_data['wins'] = 0
         member_data['losses'] = 0
-        member_data['transfer'] = 0
-        member_data['claim'] = True
-        data['members'][member.id] = member_data
+        member_data['transfers'] = 0
+        member_data['has_claimed'] = True
+        member_data['wins_per_mem'] = {}
+        member_data['losses_per_mem'] = {}
+        member_data['transfers_per_mem'] = {}
+        data['members'][str(member.id)] = member_data
 
 
     @commands.Cog.listener()
@@ -78,7 +84,7 @@ class BotEvents(commands.Cog):
             return
 
 
-        # load json file if it is already existing (bot joined before)
+        # load json file if it is already existing (bot has joined before)
         async with locks[guild.id]:
             with open(f"database/{guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
@@ -87,12 +93,13 @@ class BotEvents(commands.Cog):
             for member in filter(lambda x: x.bot == False, guild.members):
 
                 # add initial data for new members
-                if member.id not in data['members']:
+                if str(member.id) not in data['members']:
                     initialize_member(data, member, INITIAL_COINS) 
                     continue
 
                 # just update the display name for existing member
-                data['members'][member.id]['display_name'] = member.display_name
+                data['members'][str(member.id)]['display_name'] = \
+                    member.display_name
 
             with open(f"database/{guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
@@ -123,8 +130,8 @@ class BotEvents(commands.Cog):
             with open(f"database/{new_member.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
-            if new_member.id in data['members']:
-                data['members'][new_member.id]['display_name'] = \
+            if str(new_member.id) in data['members']:
+                data['members'][str(new_member.id)]['display_name'] = \
                     new_member.display_name
 
             else:
@@ -138,11 +145,13 @@ class BotEvents(commands.Cog):
     async def on_member_update(self, before: Member, after: Member):
         '''Changes the member name'''
         async with locks.get(before.guild.id):
-            if before.display_name != after.display_name:
-                with open(f"database/{before.guild.id}.json") as score_file:
-                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            if before.display_name == after.display_name:
+                return
 
-                data['members'][before.id]['display_name'] = after.display_name
+            with open(f"database/{before.guild.id}.json") as score_file:
+                data = json.load(score_file, object_pairs_hook=OrderedDict)
 
-                with open(f"database/{before.guild.id}.json",'w') as score_file:
-                    json.dump(data, score_file, indent=4)
+            data['members'][str(before.id)]['display_name'] = after.display_name
+
+            with open(f"database/{before.guild.id}.json",'w') as score_file:
+                json.dump(data, score_file, indent=4)
