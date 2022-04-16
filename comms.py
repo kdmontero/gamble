@@ -5,8 +5,9 @@ from random import randint, choice
 import discord # pip install discord
 from discord.ext import commands
 
-from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, BET_TIMEOUT
+from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD
 from events import locks
+from events import BotEvents
 
 
 class BotActionCommands(commands.Cog):
@@ -22,48 +23,37 @@ class BotActionCommands(commands.Cog):
     @commands.command()
     async def refresh(self, ctx):
         '''Same function call for on_guild_join'''
-        if locks.get(ctx.guild.id) and os.path.isfile(f'database/{ctx.guild.id}.json'):
-            async with locks.get(ctx.guild.id):
-                with open(f"database/{ctx.guild.id}.json") as score_file:
-                    data = json.load(score_file, object_pairs_hook=OrderedDict)
-                    data['guild_name'] = ctx.guild.name
-                    current_ids = {member['id'] for member in data['members']}
-                    for member in [member for member in ctx.guild.members if member.bot == False]:
-                        if member.id not in current_ids:
-                            member_data = OrderedDict()
-                            member_data['id'] = member.id
-                            member_data['display_name'] = member.display_name
-                            member_data['coins'] = INITIAL_COINS
-                            member_data['wins'] = 0
-                            member_data['losses'] = 0
-                            member_data['transfer'] = 0
-                            member_data['claim'] = True
-                            data['members'].append(member_data)            
-                        else:
-                            for person in data['members']:
-                                if person['id'] == member.id:
-                                    person['display_name'] = member.display_name
-                        
-                with open(f"database/{ctx.guild.id}.json", "w") as score_file:
-                    json.dump(data, score_file, indent=4)
 
-        else:
+        if (
+            ctx.guild.id not in locks or 
+            not os.path.isfile(f'database/{ctx.guild.id}.json')
+        ):
             locks[ctx.guild.id] = asyncio.Lock()
             data = OrderedDict()
             data['guild_id'] = ctx.guild.id
             data['guild_name'] = ctx.guild.name
-            data['members'] = []
-            for member in [member for member in ctx.guild.members if member.bot == False]:
-                member_data = OrderedDict()
-                member_data['id'] = member.id
-                member_data['display_name'] = member.display_name
-                member_data['coins'] = INITIAL_COINS
-                member_data['wins'] = 0
-                member_data['losses'] = 0
-                member_data['transfer'] = 0
-                member_data['claim'] = True
-                data['members'].append(member_data)
+            data['members'] = {}
+            for member in filter(lambda x: x.bot == False, ctx.guild.members):
+                BotEvents.initialize_member(data, member, INITIAL_COINS)
 
+            with open(f"database/{ctx.guild.id}.json", "w") as score_file:
+                json.dump(data, score_file, indent=4)
+
+            await ctx.channel.send("Data created!")
+            return
+
+        async with locks.get(ctx.guild.id):
+            with open(f"database/{ctx.guild.id}.json") as score_file:
+                data = json.load(score_file, object_pairs_hook=OrderedDict)
+
+            data['guild_name'] = ctx.guild.name
+            for member in filter(lambda x: x.bot == False, ctx.guild.members):
+                if member.id not in data['members']:
+                    BotEvents.initialize_member(data, member, INITIAL_COINS)
+                    continue
+
+                data['members'][member.id]['display_name'] = member.display_name
+                    
             with open(f"database/{ctx.guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
 
@@ -72,7 +62,9 @@ class BotActionCommands(commands.Cog):
 
     @commands.command()
     async def gamble(self, ctx, amount):
-        '''Gamble certain amount of coins and have a chance to lose or double it'''
+        '''
+        Gamble certain amount of coins and have a chance to lose or double it
+        '''
         async with locks.get(ctx.guild.id):
 
             with open(f"database/{ctx.guild.id}.json") as score_file:
@@ -108,7 +100,7 @@ class BotActionCommands(commands.Cog):
 
     @commands.command()
     async def yolo(self, ctx):
-        '''Same as command gamble all'''
+        '''Same command as gamble all'''
         async with locks.get(ctx.guild.id):
 
             with open(f"database/{ctx.guild.id}.json") as score_file:
@@ -137,7 +129,9 @@ class BotActionCommands(commands.Cog):
 
     @commands.command()
     async def claim(self, ctx):
-        '''Claim a random amount of rewards (between MIN_REWARD and MAX_REWARD)'''
+        '''
+        Claim a random amount of rewards (between MIN_REWARD and MAX_REWARD)
+        '''
         async with locks.get(ctx.guild.id):
 
             with open(f"database/{ctx.guild.id}.json") as score_file:
@@ -193,6 +187,7 @@ class BotActionCommands(commands.Cog):
 
             with open(f"database/{ctx.guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
+
 
 
 class BotDisplayCommands(commands.Cog):
