@@ -155,15 +155,15 @@ class BotActionCommands(commands.Cog):
             receiver['coins'] += amount
             receiver['transfers'] -= amount
             
-            if str(receiver.id) in sender['transfers_per_mem']:
-                sender['transfers_per_mem'][str(receiver.id)] += amount
+            if str(receiver['id']) in sender['transfers_per_mem']:
+                sender['transfers_per_mem'][str(receiver['id'])] += amount
             else:
-                sender['transfers_per_mem'][str(receiver.id)] = amount
+                sender['transfers_per_mem'][str(receiver['id'])] = amount
 
-            if str(sender.id) in receiver['transfers_per_mem']:
-                receiver['transfers_per_mem'][str(sender.id)] -= amount
+            if str(sender['id']) in receiver['transfers_per_mem']:
+                receiver['transfers_per_mem'][str(sender['id'])] -= amount
             else:
-                receiver['transfers_per_mem'][str(sender.id)] = -amount
+                receiver['transfers_per_mem'][str(sender['id'])] = -amount
 
             await ctx.channel.send(f"{sender['display_name']} transferred {amount} coins to {receiver['display_name']}")
 
