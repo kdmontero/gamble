@@ -21,13 +21,10 @@ class BotStartEvents(commands.Cog):
     async def on_ready(self):
         '''
         Prompt that bot is ready and creates a lock object for each
-        database file
+        guilds it listens to.
         '''
-        directory = os.fsencode('database/')
-        for file in os.listdir(directory):
-            filename = os.fsdecode(file)
-            if filename.endswith('.json'):
-                locks[int(filename.rstrip('.json'))] = asyncio.Lock()
+        for guild in self.bot.guilds:
+            locks[guild.id] = asyncio.Lock()
         print("Let's test your luck!")
 
 
@@ -37,6 +34,7 @@ class BotEvents(commands.Cog):
         self.bot = bot
 
 
+    @staticmethod
     def initialize_member(
         data: OrderedDict, 
         member: Member, 
@@ -69,23 +67,24 @@ class BotEvents(commands.Cog):
         the score file) and edit accordingly.
         '''
 
-        # create json file for new server
-        if guild.id not in locks:
-            locks[guild.id] = asyncio.Lock()
-            data = OrderedDict()
-            data['guild_id'] = guild.id
-            data['guild_name'] = guild.name
-            data['members'] = {}
-            for member in filter(lambda x: x.bot == False, guild.members):
-                initialize_member(data, member, INITIAL_COINS) 
-
-            with open(f"database/{guild.id}.json", "w") as score_file:
-                json.dump(data, score_file, indent=4)
-            return
-
-
-        # load json file if it is already existing (bot has joined before)
+        locks[guild.id] = asyncio.Lock()
         async with locks[guild.id]:
+
+            # create json file for new server
+            if not os.path.isfile(f'database/{guild.id}.json'):
+                data = OrderedDict()
+                data['guild_id'] = guild.id
+                data['guild_name'] = guild.name
+                data['members'] = {}
+                for member in filter(lambda x: x.bot == False, guild.members):
+                    self.initialize_member(data, member, INITIAL_COINS) 
+
+                with open(f"database/{guild.id}.json", "w") as score_file:
+                    json.dump(data, score_file, indent=4)
+                return
+
+
+            # load json file if it is already existing (bot has joined before)
             with open(f"database/{guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
 
@@ -94,7 +93,7 @@ class BotEvents(commands.Cog):
 
                 # add initial data for new members
                 if str(member.id) not in data['members']:
-                    initialize_member(data, member, INITIAL_COINS) 
+                    self.initialize_member(data, member, INITIAL_COINS) 
                     continue
 
                 # just update the display name for existing member
@@ -107,14 +106,10 @@ class BotEvents(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_guild_update(
-        self, 
-        before: Guild, 
-        after: Guild
-    ) -> None:
+    async def on_guild_update(self, before: Guild, after: Guild) -> None:
 
         '''Changes the guild name''' 
-        async with locks.get(before.id):
+        async with locks[guild.id]:
             if before.name != after.name:
                 with open(f"database/{before.id}.json") as score_file:
                     data = json.load(score_file, object_pairs_hook=OrderedDict)
@@ -125,8 +120,9 @@ class BotEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, new_member: Member) -> None:
+
         '''Adds the new_member into the score_file'''
-        async with locks.get(new_member.guild.id):
+        async with locks[new_member.guild.id]:
             with open(f"database/{new_member.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
@@ -135,7 +131,7 @@ class BotEvents(commands.Cog):
                     new_member.display_name
 
             else:
-                initialize_member(data, new_member, INITIAL_COINS)
+                self.initialize_member(data, new_member, INITIAL_COINS)
 
             with open(f"database/{new_member.guild.id}.json",'w') as score_file:
                 json.dump(data, score_file, indent=4)
@@ -143,8 +139,9 @@ class BotEvents(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: Member, after: Member) -> None:
+
         '''Changes the member name'''
-        async with locks.get(before.guild.id):
+        async with locks[before.guild.id]:
             if before.display_name == after.display_name:
                 return
 
