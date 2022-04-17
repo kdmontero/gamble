@@ -187,7 +187,7 @@ class BotDisplayCommands(commands.Cog):
             
             if gambler_name == 'all':
                 content = ""
-                for member in data['members']:
+                for member in data['members'].values():
                     content += f"{member['display_name']}: {member['coins']} coins\n"
                 await ctx.channel.send(content)
 
@@ -195,7 +195,7 @@ class BotDisplayCommands(commands.Cog):
                 if gambler_name == None:
                     gambler_name = ctx.author.display_name
                 
-                for member in data['members']:
+                for member in data['members'].values():
                     if gambler_name == member['display_name']:
                         coins = member['coins']
                         await ctx.channel.send(f"{gambler_name}: {coins} coins")
@@ -214,7 +214,7 @@ class BotDisplayCommands(commands.Cog):
             
             if gambler_name == 'all':
                 content = ""
-                for member in data['members']:
+                for member in data['members'].values():
                     content += f"{member['display_name']}: {member['wins']} W - {member['losses']} L\n"
                 await ctx.channel.send(content)
 
@@ -222,7 +222,7 @@ class BotDisplayCommands(commands.Cog):
                 if gambler_name == None:
                     gambler_name = ctx.author.display_name
                 
-                for member in data['members']:
+                for member in data['members'].values():
                     if gambler_name == member['display_name']:
                         wins = member['wins']
                         losses = member['losses']
@@ -242,7 +242,7 @@ class BotDisplayCommands(commands.Cog):
             
             if gambler_name == 'all':
                 content = ""
-                for member in data['members']:
+                for member in data['members'].values():
                     if member['transfers'] < 0:
                         content += f"{member['display_name']} received {member['transfers']} coins\n"
                     else:
@@ -254,7 +254,7 @@ class BotDisplayCommands(commands.Cog):
                 if gambler_name == None:
                     gambler_name = ctx.author.display_name
                 
-                for member in data['members']:
+                for member in data['members'].values():
                     if gambler_name == member['display_name']:
                         if member['transfers'] < 0:
                             await ctx.channel.send(f"{member['display_name']} borrowed {-member['transfers']} coins")
