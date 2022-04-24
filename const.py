@@ -3,3 +3,4 @@ MIN_REWARD = 50
 MAX_REWARD = 100
 INITIAL_COINS = 500
 REWARD_TIMER = 60 # seconds
+PATH = 'database/'

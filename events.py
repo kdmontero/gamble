@@ -4,7 +4,7 @@ from collections import OrderedDict
 import discord
 from discord.ext import commands
 
-from const import INITIAL_COINS
+from const import INITIAL_COINS, PATH
 
 Guild = discord.guild.Guild
 Member = discord.member.Member
@@ -71,7 +71,7 @@ class BotEvents(commands.Cog):
         async with locks[guild.id]:
 
             # create json file for new server
-            if not os.path.isfile(f'database/{guild.id}.json'):
+            if not os.path.isfile(f'{PATH}{guild.id}.json'):
                 data = OrderedDict()
                 data['guild_id'] = guild.id
                 data['guild_name'] = guild.name
@@ -79,13 +79,13 @@ class BotEvents(commands.Cog):
                 for member in filter(lambda x: x.bot == False, guild.members):
                     self.initialize_member(data, member, INITIAL_COINS) 
 
-                with open(f"database/{guild.id}.json", "w") as score_file:
+                with open(f"{PATH}{guild.id}.json", "w") as score_file:
                     json.dump(data, score_file, indent=4)
                 return
 
 
             # load json file if it is already existing (bot has joined before)
-            with open(f"database/{guild.id}.json") as score_file:
+            with open(f"{PATH}{guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
 
             data['guild_name'] = guild.name
@@ -100,7 +100,7 @@ class BotEvents(commands.Cog):
                 data['members'][str(member.id)]['display_name'] = \
                     member.display_name
 
-            with open(f"database/{guild.id}.json", "w") as score_file:
+            with open(f"{PATH}{guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
 
 
@@ -111,10 +111,10 @@ class BotEvents(commands.Cog):
         '''Changes the guild name''' 
         async with locks[guild.id]:
             if before.name != after.name:
-                with open(f"database/{before.id}.json") as score_file:
+                with open(f"{PATH}{before.id}.json") as score_file:
                     data = json.load(score_file, object_pairs_hook=OrderedDict)
                 data['guild_name'] = after.name
-                with open(f"database/{before.id}.json", 'w') as score_file:
+                with open(f"{PATH}{before.id}.json", 'w') as score_file:
                     json.dump(data, score_file, indent=4)
 
 
@@ -123,7 +123,7 @@ class BotEvents(commands.Cog):
 
         '''Adds the new_member into the score_file'''
         async with locks[new_member.guild.id]:
-            with open(f"database/{new_member.guild.id}.json") as score_file:
+            with open(f"{PATH}{new_member.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
             if str(new_member.id) in data['members']:
@@ -133,7 +133,7 @@ class BotEvents(commands.Cog):
             else:
                 self.initialize_member(data, new_member, INITIAL_COINS)
 
-            with open(f"database/{new_member.guild.id}.json",'w') as score_file:
+            with open(f"{PATH}{new_member.guild.id}.json",'w') as score_file:
                 json.dump(data, score_file, indent=4)
 
 
@@ -145,10 +145,10 @@ class BotEvents(commands.Cog):
             if before.display_name == after.display_name:
                 return
 
-            with open(f"database/{before.guild.id}.json") as score_file:
+            with open(f"{PATH}{before.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
 
             data['members'][str(before.id)]['display_name'] = after.display_name
 
-            with open(f"database/{before.guild.id}.json",'w') as score_file:
+            with open(f"{PATH}{before.guild.id}.json",'w') as score_file:
                 json.dump(data, score_file, indent=4)

@@ -5,7 +5,7 @@ from random import randint, choice
 import discord # pip install discord
 from discord.ext import commands
 
-from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD
+from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH
 from events import locks
 from events import BotEvents
 
@@ -35,7 +35,7 @@ class BotActionCommands(commands.Cog):
         '''
         async with locks[ctx.guild.id]:
 
-            with open(f"database/{ctx.guild.id}.json") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
             gambler = data['members'][str(ctx.author.id)]
@@ -64,7 +64,7 @@ class BotActionCommands(commands.Cog):
                 gambler['losses'] += 1
                 await ctx.channel.send(f"Sorry, {ctx.author.display_name} lost {bet} coins. Only {gambler['coins']} coins left")
 
-            with open(f"database/{ctx.guild.id}.json", "w") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
 
 
@@ -73,7 +73,7 @@ class BotActionCommands(commands.Cog):
         '''Same command as gamble all'''
         async with locks[ctx.guild.id]:
 
-            with open(f"database/{ctx.guild.id}.json") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
             gambler = data['members'][str(ctx.author.id)]
@@ -93,7 +93,7 @@ class BotActionCommands(commands.Cog):
                 gambler['losses'] += 1
                 await ctx.channel.send(f"Sorry, {ctx.author.display_name} lost {coins} coins. Only {gambler['coins']} coins left")
 
-            with open(f"database/{ctx.guild.id}.json", "w") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
 
 
@@ -104,7 +104,7 @@ class BotActionCommands(commands.Cog):
         '''
         async with locks[ctx.guild.id]:
 
-            with open(f"database/{ctx.guild.id}.json") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
 
             gambler = data['members'][str(ctx.author.id)]
@@ -118,7 +118,7 @@ class BotActionCommands(commands.Cog):
             gambler['has_claimed'] = True
             await ctx.channel.send(f"{gambler['display_name']} claimed {rewards} coins! You now have {gambler['coins']} coins")
             
-            with open(f"database/{ctx.guild.id}.json", "w") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
     
 
@@ -131,7 +131,7 @@ class BotActionCommands(commands.Cog):
                 await ctx.channel.send(f"{ctx.author.display_name}, please enter a positive value")
                 return
 
-            with open(f"database/{ctx.guild.id}.json") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
 
             sender = data['members'][str(ctx.author.id)]
@@ -167,7 +167,7 @@ class BotActionCommands(commands.Cog):
 
             await ctx.channel.send(f"{sender['display_name']} transferred {amount} coins to {receiver['display_name']}")
 
-            with open(f"database/{ctx.guild.id}.json", "w") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
 
 
@@ -182,7 +182,7 @@ class BotDisplayCommands(commands.Cog):
         '''Shows the current amount of coins'''
         async with locks[ctx.guild.id]:
 
-            with open(f"database/{ctx.guild.id}.json") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
             if gambler_name == 'all':
@@ -209,7 +209,7 @@ class BotDisplayCommands(commands.Cog):
         '''Shows the win-loss score'''
         async with locks[ctx.guild.id]:
 
-            with open(f"database/{ctx.guild.id}.json") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
             if gambler_name == 'all':
@@ -233,18 +233,18 @@ class BotDisplayCommands(commands.Cog):
 
 
     @commands.command()
-    async def given(self, ctx, gambler_name = None):
+    async def transfers(self, ctx, gambler_name = None):
         '''Shows the accumulative amount of transfers'''
         async with locks[ctx.guild.id]:
 
-            with open(f"database/{ctx.guild.id}.json") as score_file:
+            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
             if gambler_name == 'all':
                 content = ""
                 for member in data['members'].values():
                     if member['transfers'] < 0:
-                        content += f"{member['display_name']} received {member['transfers']} coins\n"
+                        content += f"{member['display_name']} received {-member['transfers']} coins\n"
                     else:
                         content += f"{member['display_name']} donated {member['transfers']} coins\n"
                 await ctx.channel.send(content)
@@ -257,7 +257,7 @@ class BotDisplayCommands(commands.Cog):
                 for member in data['members'].values():
                     if gambler_name == member['display_name']:
                         if member['transfers'] < 0:
-                            await ctx.channel.send(f"{member['display_name']} borrowed {-member['transfers']} coins")
+                            await ctx.channel.send(f"{member['display_name']} received {-member['transfers']} coins")
                         else:
                             await ctx.channel.send(f"{member['display_name']} donated {member['transfers']} coins")
                         return
