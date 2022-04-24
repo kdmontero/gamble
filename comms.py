@@ -29,7 +29,7 @@ class BotActionCommands(commands.Cog):
 
 
     @commands.command()
-    async def gamble(self, ctx, amount):
+    async def gamble(self, ctx, amount, opponent_name=None):
         '''
         Gamble certain amount of coins and have a chance to lose or double it
         '''
@@ -55,14 +55,56 @@ class BotActionCommands(commands.Cog):
                 await ctx.channel.send(f"{ctx.author.display_name}, please enter a positive value")
                 return
 
-            if result == 'win':
-                gambler['coins'] += bet
-                gambler['wins'] += 1
-                await ctx.channel.send(f"Noice! {ctx.author.display_name} won {bet} coins! You now have {gambler['coins']} coins")
-            elif result == 'loss':
-                gambler['coins'] -= bet
-                gambler['losses'] += 1
-                await ctx.channel.send(f"Sorry, {ctx.author.display_name} lost {bet} coins. Only {gambler['coins']} coins left")
+            if opponent_name is not None:
+
+                opponent = None
+                for member in data['members'].values():
+                    if opponent_name == member['display_name']:
+                        opponent = member
+                        break
+
+                if opponent is None or opponent == gambler:
+                    await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid opponent")
+                    return
+
+                if bet > opponent['coins']:
+                    await ctx.channel.send(f"Not enough coins... {opponent['display_name']} only has {opponent['coins']} coins")
+                    return
+
+                if result == 'win':
+                    winner = gambler
+                    loser = opponent
+                else:
+                    winner = opponent
+                    loser = gambler
+
+                winner['coins'] += bet
+                winner['wins'] += 1
+                loser['coins'] -= bet
+                loser['losses'] += 1
+
+                if str(loser['id']) in winner['wins_per_mem']:
+                    winner['wins_per_mem'][str(loser['id'])] += 1
+                else:
+                    winner['wins_per_mem'][str(loser['id'])] = 1
+
+                if str(winner['id']) in loser['losses_per_mem']:
+                    loser['losses_per_mem'][str(winner['id'])] += 1
+                else:
+                    loser['losses_per_mem'][str(winner['id'])] = 1
+
+                await ctx.channel.send(f"{winner['display_name']} won!")
+
+            else: 
+                if result == 'win':
+                    gambler['coins'] += bet
+                    gambler['wins'] += 1
+                    await ctx.channel.send(f"Noice! {ctx.author.display_name} won {bet} coins! You now have {gambler['coins']} coins")
+
+                elif result == 'loss':
+                    gambler['coins'] -= bet
+                    gambler['losses'] += 1
+                    await ctx.channel.send(f"Sorry, {ctx.author.display_name} lost {bet} coins. Only {gambler['coins']} coins left")
 
             with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:
                 json.dump(data, score_file, indent=4)
@@ -178,7 +220,7 @@ class BotDisplayCommands(commands.Cog):
 
 
     @commands.command()
-    async def wallet(self, ctx, gambler_name = None):
+    async def wallet(self, ctx, gambler_name=None):
         '''Shows the current amount of coins'''
         async with locks[ctx.guild.id]:
 
@@ -205,7 +247,7 @@ class BotDisplayCommands(commands.Cog):
 
 
     @commands.command()
-    async def score(self, ctx, gambler_name = None):
+    async def score(self, ctx, gambler_name=None):
         '''Shows the win-loss score'''
         async with locks[ctx.guild.id]:
 
@@ -233,7 +275,7 @@ class BotDisplayCommands(commands.Cog):
 
 
     @commands.command()
-    async def transfers(self, ctx, gambler_name = None):
+    async def transfers(self, ctx, gambler_name=None):
         '''Shows the accumulative amount of transfers'''
         async with locks[ctx.guild.id]:
 
