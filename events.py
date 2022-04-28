@@ -109,7 +109,7 @@ class BotEvents(commands.Cog):
     async def on_guild_update(self, before: Guild, after: Guild) -> None:
 
         '''Changes the guild name''' 
-        async with locks[guild.id]:
+        async with locks[before.id]:
             if before.name != after.name:
                 with open(f"{PATH}{before.id}.json") as score_file:
                     data = json.load(score_file, object_pairs_hook=OrderedDict)

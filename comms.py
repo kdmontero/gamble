@@ -18,6 +18,8 @@ class BotActionCommands(commands.Cog):
     @commands.command()
     async def ping(self, ctx):
         await ctx.channel.send("pong")
+        for m in ctx.guild.members:
+            print(m.id, type(m.id))
 
 
     @commands.command()
@@ -55,11 +57,11 @@ class BotActionCommands(commands.Cog):
                 await ctx.channel.send(f"{ctx.author.display_name}, please enter a positive value")
                 return
 
-            if opponent_name is not None:
 
+            if opponent_name is not None:
                 opponent = None
                 for member in data['members'].values():
-                    if opponent_name == member['display_name']:
+                    if opponent_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
                         opponent = member
                         break
 
@@ -184,7 +186,7 @@ class BotActionCommands(commands.Cog):
 
             receiver = None
             for member in data['members'].values():
-                if receiver_name == member['display_name']:
+                if receiver_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
                     receiver = member
                     break
             
@@ -230,7 +232,8 @@ class BotDisplayCommands(commands.Cog):
             if gambler_name == 'all':
                 content = ""
                 for member in data['members'].values():
-                    content += f"{member['display_name']}: {member['coins']} coins\n"
+                    if ctx.guild.get_member(member['id']) is not None:
+                        content += f"{member['display_name']}: {member['coins']} coins\n"
                 await ctx.channel.send(content)
 
             else:
@@ -238,7 +241,7 @@ class BotDisplayCommands(commands.Cog):
                     gambler_name = ctx.author.display_name
                 
                 for member in data['members'].values():
-                    if gambler_name == member['display_name']:
+                    if gambler_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
                         coins = member['coins']
                         await ctx.channel.send(f"{gambler_name}: {coins} coins")
                         return
@@ -247,61 +250,142 @@ class BotDisplayCommands(commands.Cog):
 
 
     @commands.command()
-    async def score(self, ctx, gambler_name=None):
+    async def score(self, ctx, gambler_name=None, opponent_name=None):
         '''Shows the win-loss score'''
         async with locks[ctx.guild.id]:
 
             with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
-            if gambler_name == 'all':
+            if gambler_name == 'all' and opponent_name is None:
                 content = ""
                 for member in data['members'].values():
-                    content += f"{member['display_name']}: {member['wins']} W - {member['losses']} L\n"
+                    if ctx.guild.get_member(member['id']) is not None:
+                        content += f"{member['display_name']}: {member['wins']} W - {member['losses']} L\n"
                 await ctx.channel.send(content)
+                return
+            
+            gambler = None
+            if gambler_name is None:
+                gambler = data['members'][str(ctx.author.id)]
+            else:
+                for member in data['members'].values():
+                    if gambler_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
+                        gambler = member
+                        break
+
+            if gambler is None:
+                await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
+                return
+
+            if opponent_name is None:
+                wins = gambler['wins']
+                losses = gambler['losses']
+                await ctx.channel.send(f"{gambler['display_name']}: {wins} W - {losses} L")
+                return
+
+            elif opponent_name == 'all':
+                if len(gambler['wins_per_mem']) == 0:
+                    await ctx.channel.send(f"{gambler['display_name']} has no score yet with other members")
+                    return
+
+                content = f"{gambler['display_name']} scores:\n"
+                for other_id in gambler['wins_per_mem']:
+                    other = data['members'][other_id]
+                    other_name = other['display_name']
+                    other_score = gambler['losses_per_mem'][other_id]
+                    gambler_score = gambler['wins_per_mem'][other_id]
+                    content += f"{gambler_score} - {other_score} {other_name}"
+
+                await ctx.channel.send(content)
+                return
 
             else:
-                if gambler_name == None:
-                    gambler_name = ctx.author.display_name
-                
+                opponent = None
                 for member in data['members'].values():
-                    if gambler_name == member['display_name']:
-                        wins = member['wins']
-                        losses = member['losses']
-                        await ctx.channel.send(f"{gambler_name}: {wins} W - {losses} L")
-                        return
+                    if opponent_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
+                        opponent = member
 
-            await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
+                if opponent is None:
+                    await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
+                    return
 
+            gambler_score = gambler['wins_per_mem'][str(opponent['id'])]
+            opponent_score = gambler['losses_per_mem'][str(opponent['id'])]
+            await ctx.channel.send(f"{gambler['display_name']} {gambler_score} - {opponent_score} {opponent['display_name']}")
 
+            
     @commands.command()
-    async def transfers(self, ctx, gambler_name=None):
+    async def transfers(self, ctx, gambler_name=None, opponent_name=None):
         '''Shows the accumulative amount of transfers'''
         async with locks[ctx.guild.id]:
 
             with open(f"{PATH}{ctx.guild.id}.json") as score_file:
                 data = json.load(score_file, object_pairs_hook=OrderedDict)
             
-            if gambler_name == 'all':
+            if gambler_name == 'all' and opponent_name is None:
                 content = ""
                 for member in data['members'].values():
-                    if member['transfers'] < 0:
-                        content += f"{member['display_name']} received {-member['transfers']} coins\n"
-                    else:
-                        content += f"{member['display_name']} donated {member['transfers']} coins\n"
+                    if ctx.guild.get_member(member['id']) is not None:
+                        if member['transfers'] < 0:
+                            content += f"{member['display_name']} received {-member['transfers']} coins\n"
+                        else:
+                            content += f"{member['display_name']} donated {member['transfers']} coins\n"
+                await ctx.channel.send(content)
+                return
+
+            gambler = None
+            if gambler_name is None:
+                gambler = data['members'][str(ctx.author.id)]
+            else:
+                for member in data['members'].values():
+                    if gambler_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
+                        gambler = member
+
+            if gambler is None:
+                await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
+                return
+        
+
+            if opponent_name is None:
+                if gambler['transfers'] < 0:
+                    await ctx.channel.send(f"{gambler['display_name']} received a total of {-gambler['transfers']} coins")
+                else:
+                    await ctx.channel.send(f"{gambler['display_name']} donated a total of {gambler['transfers']} coins")
+                return
+
+
+            elif opponent_name == 'all':
+                if len(gambler['transfers_per_mem']) == 0:
+                    await ctx.channel.send(f"{gambler['display_name']} has no transfers yet with other members")
+                    return
+
+                content = f"{gambler['display_name']}:\n"
+                for other_id in gambler['transfers_per_mem']:
+                    other = data['members'][other_id]
+                    amount = gambler['transfers_per_mem'][other_id]
+                    if amount >= 0:
+                        content += f"donated {amount} to {other['display_name']}"
+                    elif amount < 0:
+                        content += f"received {-amount} from {other['display_name']}"
                 await ctx.channel.send(content)
                 return
 
             else:
-                if gambler_name == None:
-                    gambler_name = ctx.author.display_name
-                
+                opponent = None
                 for member in data['members'].values():
-                    if gambler_name == member['display_name']:
-                        if member['transfers'] < 0:
-                            await ctx.channel.send(f"{member['display_name']} received {-member['transfers']} coins")
-                        else:
-                            await ctx.channel.send(f"{member['display_name']} donated {member['transfers']} coins")
-                        return
+                    if opponent_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
+                        opponent = member
+                        break
 
-            await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
+                if opponent is None:
+                    await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
+                    return
+
+            amount = gambler['transfers_per_mem'][str(opponent['id'])]
+            if amount >= 0:
+                content = f"{gambler['display_name']} donated {amount} to {opponent['display_name']}"
+            elif amount < 0:
+                content = f"{gambler['display_name']} received {-amount} from {opponent['display_name']}"
+            await ctx.channel.send(content)
+            
