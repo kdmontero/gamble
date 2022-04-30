@@ -5,6 +5,14 @@ import discord
 from discord.ext import commands
 
 from const import INITIAL_COINS, PATH
+from errors import (
+    NotEnoughCoinsError, 
+    InvalidAmountError, 
+    InvalidNameError, 
+    RewardError,
+    TransactionPairError,
+    DataNotFound,
+)
 
 Guild = discord.guild.Guild
 Member = discord.member.Member
@@ -111,8 +119,12 @@ class BotEvents(commands.Cog):
         '''Changes the guild name''' 
         async with locks[before.id]:
             if before.name != after.name:
-                with open(f"{PATH}{before.id}.json") as score_file:
-                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+                try:
+                    with open(f"{PATH}{before.id}.json") as score_file:
+                        data = json.load(score_file, object_pairs_hook=OrderedDict)
+                except FileNotFoundError:
+                    raise DataNotFound()
+
                 data['guild_name'] = after.name
                 with open(f"{PATH}{before.id}.json", 'w') as score_file:
                     json.dump(data, score_file, indent=4)
@@ -123,8 +135,11 @@ class BotEvents(commands.Cog):
 
         '''Adds the new_member into the score_file'''
         async with locks[new_member.guild.id]:
-            with open(f"{PATH}{new_member.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
+            try:
+                with open(f"{PATH}{new_member.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
             
             if str(new_member.id) in data['members']:
                 data['members'][str(new_member.id)]['display_name'] = \
@@ -145,10 +160,41 @@ class BotEvents(commands.Cog):
             if before.display_name == after.display_name:
                 return
 
-            with open(f"{PATH}{before.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
+            try:
+                with open(f"{PATH}{before.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
 
             data['members'][str(before.id)]['display_name'] = after.display_name
 
             with open(f"{PATH}{before.guild.id}.json",'w') as score_file:
                 json.dump(data, score_file, indent=4)
+
+
+
+class CommandEvents(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        '''Error handler for various command errors'''
+
+        custom_errors = (
+            NotEnoughCoinsError,
+            InvalidAmountError,
+            InvalidNameError,
+            RewardError,
+            TransactionPairError,
+            DataNotFound,
+        )
+        if isinstance(error, custom_errors):
+            await ctx.channel.send(error.message)
+
+        elif isinstance(error, commands.MissingRequiredArgument):
+            parsed_arg = str(error.param).replace('_', ' ')
+            await ctx.channel.send(f'Please enter {parsed_arg}.')
+
+        else:
+            raise error

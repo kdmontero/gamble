@@ -8,6 +8,14 @@ from discord.ext import commands
 from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH
 from events import locks
 from events import BotEvents
+from errors import (
+    NotEnoughCoinsError, 
+    InvalidAmountError, 
+    InvalidNameError,
+    RewardError,
+    TransactionPairError,
+    DataNotFound,
+)
 
 
 class BotActionCommands(commands.Cog):
@@ -18,8 +26,6 @@ class BotActionCommands(commands.Cog):
     @commands.command()
     async def ping(self, ctx):
         await ctx.channel.send("pong")
-        for m in ctx.guild.members:
-            print(m.id, type(m.id))
 
 
     @commands.command()
@@ -37,8 +43,11 @@ class BotActionCommands(commands.Cog):
         '''
         async with locks[ctx.guild.id]:
 
-            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
             
             gambler = data['members'][str(ctx.author.id)]
             coins = gambler['coins']
@@ -48,14 +57,15 @@ class BotActionCommands(commands.Cog):
             if amount == 'all':
                 bet = coins
             else:
-                bet = int(amount)
+                try:
+                    bet = int(amount)
+                except ValueError:
+                    raise InvalidAmountError()
 
             if bet > coins:
-                await ctx.channel.send(f"Not enough coins... {ctx.author.display_name} only has {coins} coins")
-                return
+                raise NotEnoughCoinsError(ctx.author.display_name, coins)
             elif bet <= 0:
-                await ctx.channel.send(f"{ctx.author.display_name}, please enter a positive value")
-                return
+                raise InvalidAmountError()
 
 
             if opponent_name is not None:
@@ -66,12 +76,10 @@ class BotActionCommands(commands.Cog):
                         break
 
                 if opponent is None or opponent == gambler:
-                    await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid opponent")
-                    return
+                    raise InvalidNameError()
 
                 if bet > opponent['coins']:
-                    await ctx.channel.send(f"Not enough coins... {opponent['display_name']} only has {opponent['coins']} coins")
-                    return
+                    raise NotEnoughCoinsError(opponent['display_name'], opponent['coins'])
 
                 if result == 'win':
                     winner = gambler
@@ -117,15 +125,17 @@ class BotActionCommands(commands.Cog):
         '''Same command as gamble all'''
         async with locks[ctx.guild.id]:
 
-            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
             
             gambler = data['members'][str(ctx.author.id)]
             coins = gambler['coins']
             
             if coins == 0:
-                await ctx.channel.send(f"{ctx.author.display_name} cannot YOLO with 0 coins left")
-                return
+                raise NotEnoughCoinsError(ctx.author.display_name, 0)
 
             result = choice(['win', 'loss'])
             if result == 'win':
@@ -148,14 +158,16 @@ class BotActionCommands(commands.Cog):
         '''
         async with locks[ctx.guild.id]:
 
-            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
 
             gambler = data['members'][str(ctx.author.id)]
             
             if not gambler['has_claimed']:
-                await ctx.channel.send(f"{gambler['display_name']} already claimed the reward")
-                return
+                raise RewardError('time_left')
 
             rewards = randint(MIN_REWARD, MAX_REWARD)
             gambler['coins'] += rewards
@@ -170,19 +182,24 @@ class BotActionCommands(commands.Cog):
     async def send(self, ctx, amount, receiver_name):
         '''Send coins to other user'''
         async with locks[ctx.guild.id]:
-            amount = int(amount)
-            if amount < 1:
-                await ctx.channel.send(f"{ctx.author.display_name}, please enter a positive value")
-                return
+            try:
+                amount = int(amount)
+            except ValueError:
+                raise InvalidAmountError()
 
-            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
+            if amount < 1:
+                raise InvalidAmountError()
+
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
 
             sender = data['members'][str(ctx.author.id)]
 
             if sender['coins'] < amount:
-                await ctx.channel.send(f"Not enough coins... {ctx.author.display_name} only has {sender['coins']} coins")
-                return
+                raise NotEnoughCoinsError(ctx.author.display_name, sender['coins'])
 
             receiver = None
             for member in data['members'].values():
@@ -191,8 +208,7 @@ class BotActionCommands(commands.Cog):
                     break
             
             if sender == receiver or receiver is None:
-                await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid recipient")
-                return
+                raise InvalidNameError()
             
             sender['coins'] -= amount
             sender['transfers'] += amount
@@ -226,9 +242,12 @@ class BotDisplayCommands(commands.Cog):
         '''Shows the current amount of coins'''
         async with locks[ctx.guild.id]:
 
-            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
-            
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
+
             if gambler_name == 'all':
                 content = ""
                 for member in data['members'].values():
@@ -246,7 +265,7 @@ class BotDisplayCommands(commands.Cog):
                         await ctx.channel.send(f"{gambler_name}: {coins} coins")
                         return
 
-                await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
+                raise InvalidNameError()
 
 
     @commands.command()
@@ -254,9 +273,12 @@ class BotDisplayCommands(commands.Cog):
         '''Shows the win-loss score'''
         async with locks[ctx.guild.id]:
 
-            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
-            
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
+
             if gambler_name == 'all' and opponent_name is None:
                 content = ""
                 for member in data['members'].values():
@@ -275,8 +297,7 @@ class BotDisplayCommands(commands.Cog):
                         break
 
             if gambler is None:
-                await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
-                return
+                raise InvalidNameError()
 
             if opponent_name is None:
                 wins = gambler['wins']
@@ -286,8 +307,7 @@ class BotDisplayCommands(commands.Cog):
 
             elif opponent_name == 'all':
                 if len(gambler['wins_per_mem']) == 0:
-                    await ctx.channel.send(f"{gambler['display_name']} has no score yet with other members")
-                    return
+                    raise TransactionPairError(gambler['display_name'], 'other members', 'score')
 
                 content = f"{gambler['display_name']} scores:\n"
                 for other_id in gambler['wins_per_mem']:
@@ -307,11 +327,14 @@ class BotDisplayCommands(commands.Cog):
                         opponent = member
 
                 if opponent is None:
-                    await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
-                    return
+                    raise InvalidNameError()
 
-            gambler_score = gambler['wins_per_mem'][str(opponent['id'])]
-            opponent_score = gambler['losses_per_mem'][str(opponent['id'])]
+            try:
+                gambler_score = gambler['wins_per_mem'][str(opponent['id'])]
+                opponent_score = gambler['losses_per_mem'][str(opponent['id'])]
+            except KeyError:
+                raise TransactionPairError(gambler['display_name'], opponent['display_name'], 'score')
+
             await ctx.channel.send(f"{gambler['display_name']} {gambler_score} - {opponent_score} {opponent['display_name']}")
 
             
@@ -320,8 +343,11 @@ class BotDisplayCommands(commands.Cog):
         '''Shows the accumulative amount of transfers'''
         async with locks[ctx.guild.id]:
 
-            with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
             
             if gambler_name == 'all' and opponent_name is None:
                 content = ""
@@ -343,8 +369,7 @@ class BotDisplayCommands(commands.Cog):
                         gambler = member
 
             if gambler is None:
-                await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
-                return
+                raise InvalidNameError()
         
 
             if opponent_name is None:
@@ -357,8 +382,7 @@ class BotDisplayCommands(commands.Cog):
 
             elif opponent_name == 'all':
                 if len(gambler['transfers_per_mem']) == 0:
-                    await ctx.channel.send(f"{gambler['display_name']} has no transfers yet with other members")
-                    return
+                    raise TransactionPairError(gambler['display_name'], 'other members', 'transfers')
 
                 content = f"{gambler['display_name']}:\n"
                 for other_id in gambler['transfers_per_mem']:
@@ -379,13 +403,15 @@ class BotDisplayCommands(commands.Cog):
                         break
 
                 if opponent is None:
-                    await ctx.channel.send(f"{ctx.author.display_name}, please enter a valid name")
-                    return
+                    raise InvalidNameError()
 
-            amount = gambler['transfers_per_mem'][str(opponent['id'])]
+            try:
+                amount = gambler['transfers_per_mem'][str(opponent['id'])]
+            except KeyError:
+                raise TransactionPairError(gambler['display_name'], opponent['display_name'], 'transfers')
+
             if amount >= 0:
                 content = f"{gambler['display_name']} donated {amount} to {opponent['display_name']}"
             elif amount < 0:
                 content = f"{gambler['display_name']} received {-amount} from {opponent['display_name']}"
             await ctx.channel.send(content)
-            
