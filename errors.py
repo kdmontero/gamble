@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 from discord.ext.commands.errors import (UserInputError, CommandError)
 
@@ -5,7 +9,7 @@ from discord.ext.commands.errors import (UserInputError, CommandError)
 class NotEnoughCoinsError(UserInputError):
     '''Error raised when the bet/transfers is too large'''
 
-    def __init__(self, name, coins):
+    def __init__(self, name: str, coins: int) -> None:
         self.coins = coins
         self.name = name
         self.message = f'Not enough coins. {name} only has {coins} coins'
@@ -14,14 +18,14 @@ class NotEnoughCoinsError(UserInputError):
 class InvalidAmountError(UserInputError):
     '''Error raised when the bet/transfers is not a positive integer'''
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.message = 'Please enter a valid amount'
 
 
 class InvalidNameError(UserInputError):
     '''Error raised when the member name is not found'''
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.message = 'Please enter a valid name'
 
 
@@ -30,7 +34,7 @@ class RewardError(CommandError):
     Error raised when the reward is already claimed (timer is still in cooldown)
     '''
 
-    def __init__(self, time_left):
+    def __init__(self, time_left: int) -> None:
         self.time_left = time_left
         self.message = f'Reward already claimed. Please wait {self.time_left} minutes'
 
@@ -41,7 +45,7 @@ class TransactionPairError(CommandError):
     command has not yet transacted, or the same member name is provided.
     '''
 
-    def __init__(self, member1, member2, transaction):
+    def __init__(self, member1: str, member2: str, transaction: str) -> None:
         self.member1 = member1
         self.member2 = member2
         self.transaction = transaction
@@ -51,5 +55,5 @@ class TransactionPairError(CommandError):
 class DataNotFound(CommandError):
     '''Error raised when a member or guild data is not found'''
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.message = 'Data not found. Try $refresh'

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import json, os, asyncio
 from collections import OrderedDict
 from random import randint, choice
+from typing import TYPE_CHECKING, Optional
 
 import discord # pip install discord
 from discord.ext import commands
@@ -17,19 +20,24 @@ from errors import (
     DataNotFound,
 )
 
+from discord.guild import Guild
+from discord.member import Member
+from discord.ext.commands.bot import Bot
+from discord.ext.commands.context import Context
+
 
 class BotActionCommands(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
 
     @commands.command()
-    async def ping(self, ctx):
+    async def ping(self, ctx: Context) -> None:
         await ctx.channel.send("pong")
 
 
     @commands.command()
-    async def refresh(self, ctx):
+    async def refresh(self, ctx: Context) -> None:
 
         '''Same function call for on_guild_join'''
         self.bot.dispatch('guild_join', ctx.guild)
@@ -37,7 +45,11 @@ class BotActionCommands(commands.Cog):
 
 
     @commands.command()
-    async def gamble(self, ctx, amount, opponent_name=None):
+    async def gamble(self, 
+        ctx: Context, 
+        amount: str, 
+        opponent_name: Optional[str] = None
+    ) -> None:
         '''
         Gamble certain amount of coins and have a chance to lose or double it
         '''
@@ -121,7 +133,7 @@ class BotActionCommands(commands.Cog):
 
 
     @commands.command()
-    async def yolo(self, ctx):
+    async def yolo(self, ctx: Context) -> None:
         '''Same command as gamble all'''
         async with locks[ctx.guild.id]:
 
@@ -152,7 +164,7 @@ class BotActionCommands(commands.Cog):
 
 
     @commands.command()
-    async def claim(self, ctx):
+    async def claim(self, ctx: Context) -> None:
         '''
         Claim a random amount of rewards (between MIN_REWARD and MAX_REWARD)
         '''
@@ -179,7 +191,7 @@ class BotActionCommands(commands.Cog):
     
 
     @commands.command()
-    async def send(self, ctx, amount, receiver_name):
+    async def send(self, ctx: Context, amount: str, receiver_name: str) -> None:
         '''Send coins to other user'''
         async with locks[ctx.guild.id]:
             try:
@@ -233,12 +245,16 @@ class BotActionCommands(commands.Cog):
 
 
 class BotDisplayCommands(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
 
     @commands.command()
-    async def wallet(self, ctx, gambler_name=None):
+    async def wallet(
+        self, 
+        ctx: Context, 
+        gambler_name: Optional[str] = None
+    ) -> None:
         '''Shows the current amount of coins'''
         async with locks[ctx.guild.id]:
 
@@ -269,7 +285,12 @@ class BotDisplayCommands(commands.Cog):
 
 
     @commands.command()
-    async def score(self, ctx, gambler_name=None, opponent_name=None):
+    async def score(
+        self, 
+        ctx: Context, 
+        gambler_name: Optional[str] = None, 
+        opponent_name: Optional[str] = None
+    ) -> None:
         '''Shows the win-loss score'''
         async with locks[ctx.guild.id]:
 
@@ -339,7 +360,12 @@ class BotDisplayCommands(commands.Cog):
 
             
     @commands.command()
-    async def transfers(self, ctx, gambler_name=None, opponent_name=None):
+    async def transfers(
+        self, 
+        ctx: Context, 
+        gambler_name: Optional[str] = None, 
+        opponent_name: Optional[str] = None
+    ) -> None:
         '''Shows the accumulative amount of transfers'''
         async with locks[ctx.guild.id]:
 

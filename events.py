@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import json, os, asyncio
 from collections import OrderedDict
+from typing import TYPE_CHECKING, Type
 
 import discord
 from discord.ext import commands
@@ -14,19 +17,21 @@ from errors import (
     DataNotFound,
 )
 
-Guild = discord.guild.Guild
-Member = discord.member.Member
-Data = OrderedDict # json data
+if TYPE_CHECKING:
+    from discord.guild import Guild
+    from discord.member import Member
+    from discord.ext.commands.bot import Bot
+    from discord.ext.commands.context import Context
 
 
 locks = {} # dict for asyncio.Lock() for each score_file per server/guild
 
 class BotStartEvents(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         '''
         Prompt that bot is ready and creates a lock object for each
         guilds it listens to.
@@ -38,7 +43,7 @@ class BotStartEvents(commands.Cog):
 
 
 class BotEvents(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
 
@@ -174,11 +179,15 @@ class BotEvents(commands.Cog):
 
 
 class CommandEvents(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(
+        self, 
+        ctx: Context, 
+        error: Type[UserInputError] | Type[CommandError] | Type[BaseException]
+    ) -> None:
         '''Error handler for various command errors'''
 
         custom_errors = (
