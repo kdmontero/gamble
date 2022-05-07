@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import discord
-from discord.ext.commands.errors import (UserInputError, CommandError)
+from discord.ext.commands.errors import UserInputError, CommandError
 
 
 class NotEnoughCoinsError(UserInputError):
@@ -36,7 +36,12 @@ class RewardError(CommandError):
 
     def __init__(self, time_left: int) -> None:
         self.time_left = time_left
-        self.message = f'Reward already claimed. Please wait {self.time_left} minutes'
+        if time_left == 1:
+            time_msg = '1 min'
+        else:
+            time_msg = f'{time_left} mins'
+
+        self.message = f'Reward already claimed. Please wait {time_msg}'
 
 
 class TransactionPairError(CommandError):

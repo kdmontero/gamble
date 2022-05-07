@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-import json, os, asyncio
+import json
+import os
+import asyncio
+from time import localtime, strptime, strftime, mktime
+
 from collections import OrderedDict
 from random import randint, choice
 from typing import TYPE_CHECKING, Optional
@@ -178,12 +182,20 @@ class BotActionCommands(commands.Cog):
 
             gambler = data['members'][str(ctx.author.id)]
             
-            if not gambler['has_claimed']:
-                raise RewardError('time_left')
+            time_claimed = strptime(
+                gambler['last_claimed'],
+                '%d %b %Y %H:%M:%S'
+            )
+            interval = mktime(localtime()) - mktime(time_claimed)
+            remaining_mins = int(60 - (interval // 60))
+
+            if remaining_mins > 0:
+                raise RewardError(remaining_mins)
 
             rewards = randint(MIN_REWARD, MAX_REWARD)
             gambler['coins'] += rewards
-            gambler['has_claimed'] = True
+            time_stamp = strftime('%d %b %Y %H:%M:%S', localtime())
+            gambler['last_claimed'] = time_stamp
             await ctx.channel.send(f"{gambler['display_name']} claimed {rewards} coins! You now have {gambler['coins']} coins")
             
             with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:

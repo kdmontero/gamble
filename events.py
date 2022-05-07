@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-import json, os, asyncio
+import json
+import os
+import asyncio
+from time import localtime, strftime
+
 from collections import OrderedDict
 from typing import TYPE_CHECKING, Type
 
@@ -62,7 +66,7 @@ class BotEvents(commands.Cog):
         member_data['wins'] = 0
         member_data['losses'] = 0
         member_data['transfers'] = 0
-        member_data['has_claimed'] = True
+        member_data['last_claimed'] = strftime('%d %b %Y %H:%M:%S', localtime())
         member_data['wins_per_mem'] = {}
         member_data['losses_per_mem'] = {}
         member_data['transfers_per_mem'] = {}

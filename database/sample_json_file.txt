@@ -11,7 +11,7 @@ filename: <int: guild.id>.json
             "wins": <int>,
             "losses": <int>,
             "transfers": <int>,
-            "has_claimed": <bool>,
+            "last_claimed": <str '01 Jan 2000 14:30:45'>,
             "wins_per_mem": {
                 <str: other_mem_1.id>: <int>,
                 <str: other_mem_2.id>: <int>,
@@ -35,7 +35,7 @@ filename: <int: guild.id>.json
             "wins": <int>,
             "losses": <int>,
             "transfers": <int>,
-            "has_claimed": <bool>,
+            "last_claimed": <str '01 Jan 2000 14:30:45'>,
             "wins_per_mem": {
                 <str: other_mem_1.id>: <int>,
                 <str: other_mem_2.id>: <int>,

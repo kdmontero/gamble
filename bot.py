@@ -4,7 +4,7 @@ from discord.ext import commands
 from const import COMMAND_PREFIX
 from private import TOKEN
 from events import BotEvents, BotStartEvents, CommandEvents, locks
-from comms import BotActionCommands, BotDisplayCommands
+from commands import BotActionCommands, BotDisplayCommands
 
 if __name__ == "__main__":
     intents = discord.Intents().all()
