@@ -15,6 +15,7 @@ from discord.ext import commands
 from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH
 from events import locks
 from events import BotEvents
+from custom_help import CustomHelpCommand
 from errors import (
     NotEnoughCoinsError, 
     InvalidAmountError, 
@@ -30,9 +31,20 @@ from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
 
 
-class BotActionCommands(commands.Cog):
+class Action(commands.Cog):
+    '''gamble, yolo, claim, send, refresh'''
+
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+        '''
+        bot.help_command = CustomHelpCommand()
+        bot.help_command.cog = self
+        '''
+
+    '''
+    def cog_unload(self) -> None:
+        self.bot.help_command = self. _original_help_command
+    '''
 
 
     @commands.command()
@@ -40,22 +52,28 @@ class BotActionCommands(commands.Cog):
         await ctx.channel.send("pong")
 
 
-    @commands.command()
+    @commands.command(aliases=['r'])
     async def refresh(self, ctx: Context) -> None:
-
-        '''Same function call for on_guild_join'''
+        '''refresh the \ndata'''
         self.bot.dispatch('guild_join', ctx.guild)
         await ctx.channel.send("Data refreshed!")
 
 
-    @commands.command()
+    @commands.command(aliases=['g'])
     async def gamble(self, 
         ctx: Context, 
         amount: str, 
         opponent_name: Optional[str] = None
     ) -> None:
         '''
-        Gamble certain amount of coins and have a chance to lose or double it
+        gamble all
+            - gamble all coins
+
+        gamble <amount>
+            - gamble a certain amount of coins
+
+        gamble <amount> <opponent_name>
+            - gamble a certain amount vs. another member
         '''
         async with locks[ctx.guild.id]:
 
@@ -136,38 +154,13 @@ class BotActionCommands(commands.Cog):
                 json.dump(data, score_file, indent=4)
 
 
-    @commands.command()
+    @commands.command(aliases=['y'])
     async def yolo(self, ctx: Context) -> None:
         '''Same command as gamble all'''
-        async with locks[ctx.guild.id]:
-
-            try:
-                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
-                    data = json.load(score_file, object_pairs_hook=OrderedDict)
-            except FileNotFoundError:
-                raise DataNotFound()
-            
-            gambler = data['members'][str(ctx.author.id)]
-            coins = gambler['coins']
-            
-            if coins == 0:
-                raise NotEnoughCoinsError(ctx.author.display_name, 0)
-
-            result = choice(['win', 'loss'])
-            if result == 'win':
-                gambler['coins'] *= 2
-                gambler['wins'] += 1
-                await ctx.channel.send(f"Noice! {ctx.author.display_name} won {coins} coins! You now have {gambler['coins']} coins")
-            elif result == 'loss':
-                gambler['coins'] = 0
-                gambler['losses'] += 1
-                await ctx.channel.send(f"Sorry, {ctx.author.display_name} lost {coins} coins. Only {gambler['coins']} coins left")
-
-            with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:
-                json.dump(data, score_file, indent=4)
+        await ctx.invoke(self.bot.get_command('gamble'), amount='all')
 
 
-    @commands.command()
+    @commands.command(aliases=['c'])
     async def claim(self, ctx: Context) -> None:
         '''
         Claim a random amount of rewards (between MIN_REWARD and MAX_REWARD)
@@ -202,7 +195,7 @@ class BotActionCommands(commands.Cog):
                 json.dump(data, score_file, indent=4)
     
 
-    @commands.command()
+    @commands.command(aliases=['s'])
     async def send(self, ctx: Context, amount: str, receiver_name: str) -> None:
         '''Send coins to other user'''
         async with locks[ctx.guild.id]:
@@ -256,12 +249,14 @@ class BotActionCommands(commands.Cog):
 
 
 
-class BotDisplayCommands(commands.Cog):
+class Display(commands.Cog):
+    '''wallet, score, transfers'''
+
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
 
-    @commands.command()
+    @commands.command(aliases=['w'])
     async def wallet(
         self, 
         ctx: Context, 
@@ -296,7 +291,7 @@ class BotDisplayCommands(commands.Cog):
                 raise InvalidNameError()
 
 
-    @commands.command()
+    @commands.command(aliases=['sc'])
     async def score(
         self, 
         ctx: Context, 
@@ -371,7 +366,7 @@ class BotDisplayCommands(commands.Cog):
             await ctx.channel.send(f"{gambler['display_name']} {gambler_score} - {opponent_score} {opponent['display_name']}")
 
             
-    @commands.command()
+    @commands.command(aliases=['t'])
     async def transfers(
         self, 
         ctx: Context, 

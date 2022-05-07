@@ -206,7 +206,13 @@ class CommandEvents(commands.Cog):
             await ctx.channel.send(error.message)
 
         elif isinstance(error, commands.MissingRequiredArgument):
+
+            # parse the parameter by removing the annotations and '_'
             parsed_arg = str(error.param).replace('_', ' ')
+            if ':' in parsed_arg:
+                i = parsed_arg.index(':')
+                parsed_arg = parsed_arg[:i]
+
             await ctx.channel.send(f'Please enter {parsed_arg}.')
 
         else:
