@@ -13,7 +13,7 @@ import discord # pip install discord
 from discord.ext import commands
 
 from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH
-from events import locks
+from events import locks, refresh_data
 from events import BotEvents
 from custom_help import CustomHelpCommand
 from errors import (
@@ -55,8 +55,9 @@ class Action(commands.Cog):
     @commands.command(aliases=['r'])
     async def refresh(self, ctx: Context) -> None:
         '''refresh the \ndata'''
-        self.bot.dispatch('guild_join', ctx.guild)
-        await ctx.channel.send("Data refreshed!")
+        refresh_data(ctx.guild)
+        # self.bot.dispatch('guild_join', ctx.guild)
+        await ctx.channel.send("`Data refreshed!`")
 
 
     @commands.command(aliases=['g'])

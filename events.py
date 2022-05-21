@@ -45,32 +45,66 @@ class BotStartEvents(commands.Cog):
         print("Let's test your luck!")
 
 
+def initialize_member(
+    data: OrderedDict, 
+    member: Member, 
+    INITIAL_COINS: int
+) -> None:
+
+    '''set the initial data for a non-existing member'''
+    member_data = OrderedDict()
+    member_data['id'] = member.id
+    member_data['display_name'] = member.display_name
+    member_data['coins'] = INITIAL_COINS
+    member_data['wins'] = 0
+    member_data['losses'] = 0
+    member_data['transfers'] = 0
+    member_data['last_claimed'] = strftime('%d %b %Y %H:%M:%S', localtime())
+    member_data['wins_per_mem'] = {}
+    member_data['losses_per_mem'] = {}
+    member_data['transfers_per_mem'] = {}
+    data['members'][str(member.id)] = member_data
+
+
+def refresh_data(guild: Guild) -> None:
+    # create json file for new server
+    if not os.path.isfile(f'{PATH}{guild.id}.json'):
+        data = OrderedDict()
+        data['guild_id'] = guild.id
+        data['guild_name'] = guild.name
+        data['members'] = {}
+        for member in filter(lambda x: x.bot == False, guild.members):
+            initialize_member(data, member, INITIAL_COINS) 
+
+        with open(f"{PATH}{guild.id}.json", "w") as score_file:
+            json.dump(data, score_file, indent=4)
+        return
+
+
+    # load json file if it is already existing (bot has joined before)
+    with open(f"{PATH}{guild.id}.json") as score_file:
+        data = json.load(score_file, object_pairs_hook=OrderedDict)
+
+    data['guild_name'] = guild.name
+    for member in filter(lambda x: x.bot == False, guild.members):
+
+        # add initial data for new members
+        if str(member.id) not in data['members']:
+            initialize_member(data, member, INITIAL_COINS) 
+            continue
+
+        # just update the display name for existing member
+        data['members'][str(member.id)]['display_name'] = \
+            member.display_name
+
+    with open(f"{PATH}{guild.id}.json", "w") as score_file:
+        json.dump(data, score_file, indent=4)
+
+
 
 class BotEvents(commands.Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-
-
-    @staticmethod
-    def initialize_member(
-        data: OrderedDict, 
-        member: Member, 
-        INITIAL_COINS: int
-    ) -> None:
-
-        '''set the initial data for a non-existing member'''
-        member_data = OrderedDict()
-        member_data['id'] = member.id
-        member_data['display_name'] = member.display_name
-        member_data['coins'] = INITIAL_COINS
-        member_data['wins'] = 0
-        member_data['losses'] = 0
-        member_data['transfers'] = 0
-        member_data['last_claimed'] = strftime('%d %b %Y %H:%M:%S', localtime())
-        member_data['wins_per_mem'] = {}
-        member_data['losses_per_mem'] = {}
-        member_data['transfers_per_mem'] = {}
-        data['members'][str(member.id)] = member_data
 
 
     @commands.Cog.listener()
@@ -83,43 +117,10 @@ class BotEvents(commands.Cog):
         (guild name, or any display name were changed, new members were not in
         the score file) and edit accordingly.
         '''
-
         locks[guild.id] = asyncio.Lock()
         async with locks[guild.id]:
-
-            # create json file for new server
-            if not os.path.isfile(f'{PATH}{guild.id}.json'):
-                data = OrderedDict()
-                data['guild_id'] = guild.id
-                data['guild_name'] = guild.name
-                data['members'] = {}
-                for member in filter(lambda x: x.bot == False, guild.members):
-                    self.initialize_member(data, member, INITIAL_COINS) 
-
-                with open(f"{PATH}{guild.id}.json", "w") as score_file:
-                    json.dump(data, score_file, indent=4)
-                return
-
-
-            # load json file if it is already existing (bot has joined before)
-            with open(f"{PATH}{guild.id}.json") as score_file:
-                data = json.load(score_file, object_pairs_hook=OrderedDict)
-
-            data['guild_name'] = guild.name
-            for member in filter(lambda x: x.bot == False, guild.members):
-
-                # add initial data for new members
-                if str(member.id) not in data['members']:
-                    self.initialize_member(data, member, INITIAL_COINS) 
-                    continue
-
-                # just update the display name for existing member
-                data['members'][str(member.id)]['display_name'] = \
-                    member.display_name
-
-            with open(f"{PATH}{guild.id}.json", "w") as score_file:
-                json.dump(data, score_file, indent=4)
-
+            refresh_data(guild)
+            await guild.system_channel.send('Hello world!')
 
 
     @commands.Cog.listener()
@@ -155,7 +156,7 @@ class BotEvents(commands.Cog):
                     new_member.display_name
 
             else:
-                self.initialize_member(data, new_member, INITIAL_COINS)
+                initialize_member(data, new_member, INITIAL_COINS)
 
             with open(f"{PATH}{new_member.guild.id}.json",'w') as score_file:
                 json.dump(data, score_file, indent=4)
