@@ -30,37 +30,29 @@ from discord.member import Member
 from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
 
+'''
+@bot.command()
+async def ping(self, ctx: Context) -> None:
+    await ctx.channel.send("pong")
+    for c in bot.commands:
+        print(c.name)
+'''
 
 class Action(commands.Cog):
     '''gamble, yolo, claim, send, refresh'''
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-        '''
-        bot.help_command = CustomHelpCommand()
-        bot.help_command.cog = self
-        '''
 
-    '''
-    def cog_unload(self) -> None:
-        self.bot.help_command = self. _original_help_command
-    '''
-
-
-    @commands.command()
-    async def ping(self, ctx: Context) -> None:
-        await ctx.channel.send("pong")
-
-
-    @commands.command(aliases=['r'])
+    @commands.command(aliases=['r'], brief='refresh the data')
     async def refresh(self, ctx: Context) -> None:
-        '''refresh the \ndata'''
+        '''refresh the data'''
         refresh_data(ctx.guild)
         # self.bot.dispatch('guild_join', ctx.guild)
         await ctx.channel.send("`Data refreshed!`")
 
 
-    @commands.command(aliases=['g'])
+    @commands.command(aliases=['g'], brief='bet coins to double or nothing')
     async def gamble(self, 
         ctx: Context, 
         amount: str, 
@@ -155,13 +147,16 @@ class Action(commands.Cog):
                 json.dump(data, score_file, indent=4)
 
 
-    @commands.command(aliases=['y'])
+    @commands.command(aliases=['y'], brief='bet all coins')
     async def yolo(self, ctx: Context) -> None:
         '''Same command as gamble all'''
         await ctx.invoke(self.bot.get_command('gamble'), amount='all')
 
 
-    @commands.command(aliases=['c'])
+    @commands.command(
+        aliases=['c'], 
+        brief=f'claim hourly rewards of {MIN_REWARD} to {MAX_REWARD} coins'
+    )
     async def claim(self, ctx: Context) -> None:
         '''
         Claim a random amount of rewards (between MIN_REWARD and MAX_REWARD)
@@ -196,7 +191,7 @@ class Action(commands.Cog):
                 json.dump(data, score_file, indent=4)
     
 
-    @commands.command(aliases=['s'])
+    @commands.command(aliases=['s'], brief='send coins to others')
     async def send(self, ctx: Context, amount: str, receiver_name: str) -> None:
         '''Send coins to other user'''
         async with locks[ctx.guild.id]:
@@ -256,12 +251,11 @@ class Display(commands.Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-
-    @commands.command(aliases=['w'])
+    @commands.command(aliases=['w'], brief='show total coins')
     async def wallet(
         self, 
         ctx: Context, 
-        gambler_name: Optional[str] = None
+        *gambler_list: Optional[str]
     ) -> None:
         '''Shows the current amount of coins'''
         async with locks[ctx.guild.id]:
@@ -272,27 +266,54 @@ class Display(commands.Cog):
             except FileNotFoundError:
                 raise DataNotFound()
 
-            if gambler_name == 'all':
+            if gambler_list == ('all',):
                 content = ""
                 for member in data['members'].values():
                     if ctx.guild.get_member(member['id']) is not None:
                         content += f"{member['display_name']}: {member['coins']} coins\n"
-                await ctx.channel.send(content)
+                content = content * 10
+                page = discord.Embed(title='this is title', description=content,text=content, color=0x00ff00)
+                paginator = commands.Paginator()
+                paginator.pages.append(page)
+                paginator.add_line('hello this is line')
+                for line in content.splitlines():
+                    paginator.add_line(line)
 
-            else:
-                if gambler_name == None:
-                    gambler_name = ctx.author.display_name
-                
+                for page in paginator.pages:
+                    if isinstance(page, discord.Embed):
+                        await ctx.channel.send(embed=page)
+                    else:
+                        await ctx.channel.send(page)
+                print(paginator.pages)
+                return
+
+            elif len(gambler_list) == 0:
                 for member in data['members'].values():
-                    if gambler_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
+                    if member['display_name'] == ctx.author.display_name:
+                        member_name = member['display_name']
                         coins = member['coins']
-                        await ctx.channel.send(f"{gambler_name}: {coins} coins")
+                        await ctx.channel.send(
+                            f"{member_name}: {coins} coins"
+                        )
                         return
+                
+            else:
+                content = ""
+                for member in data['members'].values():
+                    if member['display_name'] in gambler_list and ctx.guild.get_member(member['id']) is not None:
+                        coins = member['coins']
+                        member_name = member['display_name']
+                        content += f"{member_name}: {coins} coins\n"
+                    
+                if content:
+                    await ctx.channel.send(content)
+                    return
 
-                raise InvalidNameError()
+                else:
+                    raise InvalidNameError()
 
 
-    @commands.command(aliases=['sc'])
+    @commands.command(aliases=['sc'], brief='show win-loss record')
     async def score(
         self, 
         ctx: Context, 
@@ -367,7 +388,7 @@ class Display(commands.Cog):
             await ctx.channel.send(f"{gambler['display_name']} {gambler_score} - {opponent_score} {opponent['display_name']}")
 
             
-    @commands.command(aliases=['t'])
+    @commands.command(aliases=['t'], brief='show accumulative transfers')
     async def transfers(
         self, 
         ctx: Context, 
