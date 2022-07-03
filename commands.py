@@ -30,19 +30,17 @@ from discord.member import Member
 from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
 
-'''
-@bot.command()
-async def ping(self, ctx: Context) -> None:
-    await ctx.channel.send("pong")
-    for c in bot.commands:
-        print(c.name)
-'''
 
 class Action(commands.Cog):
-    '''gamble, yolo, claim, send, refresh'''
+    '''action commands to grow or lose your coins!'''
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
+
+    @commands.command(hidden=True)
+    async def ping(self, ctx: Context) -> None:
+        await ctx.channel.send("pong")
+
 
     @commands.command(aliases=['r'], brief='refresh the data')
     async def refresh(self, ctx: Context) -> None:
