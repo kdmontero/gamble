@@ -12,7 +12,11 @@ from custom_help import CustomHelpCommand
 
 if __name__ == "__main__":
     intents = discord.Intents().all()
-    bot = commands.Bot(command_prefix=COMMAND_PREFIX, intents=intents)
+    bot = commands.Bot(
+        command_prefix=COMMAND_PREFIX,
+        intents=intents,
+        case_insensitive=True
+    )
     bot.add_cog(BotEvents(bot))
     bot.add_cog(BotStartEvents(bot))
     bot.add_cog(CommandEvents(bot))
