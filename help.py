@@ -13,10 +13,11 @@ from pretty_help.pretty_help import Paginator
 if TYPE_CHECKING:
     from discord.ext.commands import Command
 
-class CustomPaginator(Paginator):
+class HelpPaginator(Paginator):
     def __init__(self, show_index, color=0):
-        self.opening_note = 'Hello there, use prefix $'
+        self.opening_note = f'use prefix `{COMMAND_PREFIX}` before a command.'
         super().__init__(show_index, color)
+        self.prefix = self.suffix = '`'
 
 
     def add_cog(
@@ -38,13 +39,42 @@ class CustomPaginator(Paginator):
         self._add_command_fields(embed, page_title, commands_list)
 
 
+    @staticmethod
+    def __command_info(command: Union[commands.Command, commands.Group]):
+        info = ""
+        if command.brief:
+            info += command.brief + "\n\n"
+        if command.help:
+            info += command.help
+        if not info:
+            info = ""
+        return info
+
+    def add_command(self, command: commands.Command, signature: str):
+        """
+        Add a command help page
+        Args:
+            command (commands.Command): The command to get help for
+            signature (str): The command signature/usage string
+        """
+        page = self._new_page(
+            f'{COMMAND_PREFIX}{command.qualified_name}',
+            f"{self.__command_info(command)}" or "",
+        )
+
+        page.add_field(
+            name="Usage", value=f"{self.prefix}{signature}{self.suffix}", inline=True
+        )
+        self._add_page(page)
+
+
     def add_index(self, title: str, bot: commands.Bot):
 
         if self.show_index:
             index = self._new_page(title=title, description=self.opening_note)
 
             for page_no, page in enumerate(self._pages, 1):
-                content = ", ".join([i.name for i in page.fields])
+                content = " | ".join([i.name for i in page.fields])
 
                 index.add_field(
                     name=f"{page_no}) {page.title}",
@@ -58,10 +88,10 @@ class CustomPaginator(Paginator):
             self._pages[0].description = bot.description
 
 
-class CustomHelpCommand(PrettyHelp):
+class CustomHelp(PrettyHelp):
     def __init__(self, **options):
         super().__init__(**options)
-        self.paginator = CustomPaginator(color=self.color, show_index=options.pop('show_index', True))
+        self.paginator = HelpPaginator(color=self.color, show_index=options.pop('show_index', True))
         
 
 
@@ -83,13 +113,16 @@ class CustomHelpCommand(PrettyHelp):
         .. versionchanged:: 2.0
             ``ctx`` parameter is now positional-only.
         """
-        await self.prepare_help_command(ctx, command.lower())
 
         bot = ctx.bot
 
         if command is None:
+            await self.prepare_help_command(ctx, command)
             mapping = self.get_bot_mapping()
             return await self.send_bot_help(mapping)
+
+        await self.prepare_help_command(ctx, command.lower())
+
 
         # Check if it's a cog
         cog = bot.get_cog(command.title())

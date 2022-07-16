@@ -15,7 +15,6 @@ from discord.ext import commands
 from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH
 from events import locks, refresh_data
 from events import BotEvents
-from custom_help import CustomHelpCommand
 from errors import (
     NotEnoughCoinsError, 
     InvalidAmountError, 
@@ -32,7 +31,7 @@ from discord.ext.commands.context import Context
 
 
 class Action(commands.Cog):
-    '''action commands to grow or lose your coins!'''
+    '''actions to grow or lose your coins'''
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
@@ -57,13 +56,13 @@ class Action(commands.Cog):
         opponent_name: Optional[str] = None
     ) -> None:
         '''
-        gamble all
+        `gamble all`
             - gamble all coins
 
-        gamble <amount>
+        `gamble <amount>`
             - gamble a certain amount of coins
 
-        gamble <amount> <opponent_name>
+        `gamble <amount> <opponent_name>`
             - gamble a certain amount vs. another member
         '''
         async with locks[ctx.guild.id]:
@@ -156,9 +155,7 @@ class Action(commands.Cog):
         brief=f'claim hourly rewards of {MIN_REWARD} to {MAX_REWARD} coins'
     )
     async def claim(self, ctx: Context) -> None:
-        '''
-        Claim a random amount of rewards (between MIN_REWARD and MAX_REWARD)
-        '''
+
         async with locks[ctx.guild.id]:
 
             try:

@@ -8,7 +8,7 @@ from const import COMMAND_PREFIX
 from private import TOKEN
 from events import BotEvents, BotStartEvents, CommandEvents, locks
 from commands import Action, Display
-from custom_help import CustomHelpCommand
+from help import CustomHelp
 
 if __name__ == "__main__":
     intents = discord.Intents().all()
@@ -22,5 +22,5 @@ if __name__ == "__main__":
     bot.add_cog(CommandEvents(bot))
     bot.add_cog(Action(bot))
     bot.add_cog(Display(bot))
-    bot.help_command = CustomHelpCommand()
+    bot.help_command = CustomHelp()
     bot.run(TOKEN)
