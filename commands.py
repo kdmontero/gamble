@@ -49,7 +49,8 @@ class Action(commands.Cog):
         await ctx.channel.send("`Data refreshed!`")
 
 
-    @commands.command(aliases=['g'], brief='bet coins to double or nothing')
+    @commands.command(aliases=['g'], brief='bet coins to double or nothing',
+        usage='<amount|all> [opponent]')
     async def gamble(self, 
         ctx: Context, 
         amount: str, 
@@ -186,7 +187,8 @@ class Action(commands.Cog):
                 json.dump(data, score_file, indent=4)
     
 
-    @commands.command(aliases=['s'], brief='send coins to others')
+    @commands.command(aliases=['s'], brief='send coins to others',
+        usage='<amount|all> <recipient>')
     async def send(self, ctx: Context, amount: str, receiver_name: str) -> None:
         '''Send coins to other user'''
         async with locks[ctx.guild.id]:
