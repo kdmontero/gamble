@@ -31,7 +31,7 @@ from discord.ext.commands.context import Context
 
 
 class Action(commands.Cog):
-    '''actions to grow or lose your coins'''
+    '''Actions to grow or lose your coins'''
 
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
@@ -41,7 +41,10 @@ class Action(commands.Cog):
         await ctx.channel.send("pong")
 
 
-    @commands.command(aliases=['r'], brief='refresh the data')
+    @commands.command(
+        aliases=['r'], 
+        brief='Refresh the data.'
+    )
     async def refresh(self, ctx: Context) -> None:
         '''refresh the data'''
         refresh_data(ctx.guild)
@@ -49,23 +52,18 @@ class Action(commands.Cog):
         await ctx.channel.send("`Data refreshed!`")
 
 
-    @commands.command(aliases=['g'], brief='bet coins to double or nothing',
-        usage='<amount|all> [opponent]')
-    async def gamble(self, 
+    @commands.command(
+        aliases=['g'], 
+        brief='Bet coins to double or nothing.',
+        usage='<amount|all> [opponent]'
+    )
+    async def gamble(
+        self, 
         ctx: Context, 
         amount: str, 
         opponent_name: Optional[str] = None
     ) -> None:
-        '''
-        `gamble all`
-            - gamble all coins
 
-        `gamble <amount>`
-            - gamble a certain amount of coins
-
-        `gamble <amount> <opponent_name>`
-            - gamble a certain amount vs. another member
-        '''
         async with locks[ctx.guild.id]:
 
             try:
@@ -145,15 +143,27 @@ class Action(commands.Cog):
                 json.dump(data, score_file, indent=4)
 
 
-    @commands.command(aliases=['y'], brief='bet all coins')
-    async def yolo(self, ctx: Context) -> None:
+    @commands.command(
+        aliases=['y'], 
+        brief='Bet all coins.',
+        usage='[opponent]'
+    )
+    async def yolo(
+        self, 
+        ctx: Context, 
+        opponent_name: Optional[str] = None
+    ) -> None:
         '''Same command as gamble all'''
-        await ctx.invoke(self.bot.get_command('gamble'), amount='all')
+        await ctx.invoke(
+            self.bot.get_command('gamble'), 
+            amount='all', 
+            opponent_name=opponent_name
+        )
 
 
     @commands.command(
         aliases=['c'], 
-        brief=f'claim hourly rewards of {MIN_REWARD} to {MAX_REWARD} coins'
+        brief=f'Claim hourly rewards ({MIN_REWARD} to {MAX_REWARD} coins).',
     )
     async def claim(self, ctx: Context) -> None:
 
@@ -187,8 +197,11 @@ class Action(commands.Cog):
                 json.dump(data, score_file, indent=4)
     
 
-    @commands.command(aliases=['s'], brief='send coins to others',
-        usage='<amount|all> <recipient>')
+    @commands.command(
+        aliases=['s'], 
+        brief='Send coins to others.',
+        usage='<amount|all> <recipient>'
+    )
     async def send(self, ctx: Context, amount: str, receiver_name: str) -> None:
         '''Send coins to other user'''
         async with locks[ctx.guild.id]:
@@ -248,7 +261,11 @@ class Display(commands.Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
-    @commands.command(aliases=['w'], brief='show total coins')
+    @commands.command(
+        aliases=['w'], 
+        brief='Show total coins.',
+        usage='[member|all]'
+    )
     async def wallet(
         self, 
         ctx: Context, 
@@ -310,7 +327,11 @@ class Display(commands.Cog):
                     raise InvalidNameError()
 
 
-    @commands.command(aliases=['sc'], brief='show win-loss record')
+    @commands.command(
+        aliases=['sc'], 
+        brief='Show win-loss record.',
+        usage='[member|all]'
+        )
     async def score(
         self, 
         ctx: Context, 

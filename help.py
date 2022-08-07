@@ -44,8 +44,6 @@ class HelpPaginator(Paginator):
         info = ""
         if command.brief:
             info += command.brief + "\n\n"
-        if command.help:
-            info += command.help
         if not info:
             info = ""
         return info
@@ -57,14 +55,23 @@ class HelpPaginator(Paginator):
             command (commands.Command): The command to get help for
             signature (str): The command signature/usage string
         """
+        prefix_command = f'{COMMAND_PREFIX}{command.qualified_name}'
         page = self._new_page(
-            f'{COMMAND_PREFIX}{command.qualified_name}',
+            prefix_command,
             f"{self.__command_info(command)}" or "",
         )
 
+        
+        usage = ' ' + command.usage if command.usage else ""
         page.add_field(
-            name="Usage", value=f"{self.prefix}{signature}{self.suffix}", inline=True
+            name="Usage", value=f"{self.prefix}{prefix_command}{usage}{self.suffix}", inline=True
         )
+        aliases = command.aliases
+        if aliases:
+            page.add_field(
+                name="Aliases", value=f"{self.prefix}{''.join(aliases)}{self.suffix}", inline=False
+            )
+
         self._add_page(page)
 
 
@@ -92,6 +99,11 @@ class CustomHelp(PrettyHelp):
     def __init__(self, **options):
         super().__init__(**options)
         self.paginator = HelpPaginator(color=self.color, show_index=options.pop('show_index', True))
+        self.ending_note = (
+            "<required input> [optional input]\n"
+            "Type `{help.clean_prefix}{help.invoked_with} command` for more info on a command.\n"
+            "You can also type `{help.clean_prefix}{help.invoked_with} category` for more info on a category."
+        )
         
 
 
@@ -157,3 +169,5 @@ class CustomHelp(PrettyHelp):
             return await self.send_group_help(cmd)
         else:
             return await self.send_command_help(cmd)
+
+
