@@ -61,15 +61,21 @@ class HelpPaginator(Paginator):
             f"{self.__command_info(command)}" or "",
         )
 
-        
-        usage = ' ' + command.usage if command.usage else ""
+        if command.usage:
+            args = command.usage.splitlines()
+            usage_list = [prefix_command + ' ' + arg.strip() for arg in args]
+            usage_body = '\n'.join(usage_list)
+        else:
+            usage_body = prefix_command
+
         page.add_field(
-            name="Usage", value=f"{self.prefix}{prefix_command}{usage}{self.suffix}", inline=True
+            name="Usage", value=usage_body, inline=True
         )
+
         aliases = command.aliases
         if aliases:
             page.add_field(
-                name="Aliases", value=f"{self.prefix}{''.join(aliases)}{self.suffix}", inline=False
+                name="Aliases", value=f"{''.join(aliases)}", inline=False
             )
 
         self._add_page(page)

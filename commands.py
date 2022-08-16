@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Optional
 import discord # pip install discord
 from discord.ext import commands
 
-from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH
+from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH, COMMAND_PREFIX
 from events import locks, refresh_data
 from events import BotEvents
 from errors import (
@@ -46,7 +46,6 @@ class Action(commands.Cog):
         brief='Refresh the data.'
     )
     async def refresh(self, ctx: Context) -> None:
-        '''refresh the data'''
         refresh_data(ctx.guild)
         # self.bot.dispatch('guild_join', ctx.guild)
         await ctx.channel.send("`Data refreshed!`")
@@ -55,7 +54,10 @@ class Action(commands.Cog):
     @commands.command(
         aliases=['g'], 
         brief='Bet coins to double or nothing.',
-        usage='<amount|all> [opponent]'
+        usage='''<amount>
+            <amount> [opponent]
+            all
+            all [opponent]'''
     )
     async def gamble(
         self, 
@@ -146,7 +148,8 @@ class Action(commands.Cog):
     @commands.command(
         aliases=['y'], 
         brief='Bet all coins.',
-        usage='[opponent]'
+        usage='''
+            [opponent]'''
     )
     async def yolo(
         self, 
@@ -200,10 +203,10 @@ class Action(commands.Cog):
     @commands.command(
         aliases=['s'], 
         brief='Send coins to others.',
-        usage='<amount|all> <recipient>'
+        usage='''<amount> <recipient>
+            all <recipient>'''
     )
     async def send(self, ctx: Context, amount: str, receiver_name: str) -> None:
-        '''Send coins to other user'''
         async with locks[ctx.guild.id]:
             try:
                 amount = int(amount)
@@ -264,7 +267,9 @@ class Display(commands.Cog):
     @commands.command(
         aliases=['w'], 
         brief='Show total coins.',
-        usage='[member|all]'
+        usage='''
+            [player1] [player2] ...
+            all'''
     )
     async def wallet(
         self, 
@@ -285,6 +290,9 @@ class Display(commands.Cog):
                 for member in data['members'].values():
                     if ctx.guild.get_member(member['id']) is not None:
                         content += f"{member['display_name']}: {member['coins']} coins\n"
+
+                await ctx.channel.send(content)
+                '''
                 content = content * 10
                 page = discord.Embed(title='this is title', description=content,text=content, color=0x00ff00)
                 paginator = commands.Paginator()
@@ -299,6 +307,8 @@ class Display(commands.Cog):
                     else:
                         await ctx.channel.send(page)
                 print(paginator.pages)
+                '''
+
                 return
 
             elif len(gambler_list) == 0:
@@ -329,8 +339,11 @@ class Display(commands.Cog):
 
     @commands.command(
         aliases=['sc'], 
-        brief='Show win-loss record.',
-        usage='[member|all]'
+        brief='Show the total win-loss record of a player, or the score between 2 players.',
+        usage='''
+            [player1]
+            all
+            [player1] [player2]'''
         )
     async def score(
         self, 
@@ -406,14 +419,20 @@ class Display(commands.Cog):
             await ctx.channel.send(f"{gambler['display_name']} {gambler_score} - {opponent_score} {opponent['display_name']}")
 
             
-    @commands.command(aliases=['t'], brief='show accumulative transfers')
+    @commands.command(
+        aliases=['t'], 
+        brief='Show the accumulative transfers of a single player, or the transfers between 2 players.',
+        usage='''
+            [player1]
+            all
+            [player1] [player2]'''
+    )
     async def transfers(
         self, 
         ctx: Context, 
         gambler_name: Optional[str] = None, 
         opponent_name: Optional[str] = None
     ) -> None:
-        '''Shows the accumulative amount of transfers'''
         async with locks[ctx.guild.id]:
 
             try:
