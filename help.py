@@ -17,7 +17,7 @@ class HelpPaginator(Paginator):
     def __init__(self, show_index, color=0):
         self.opening_note = f'use prefix `{COMMAND_PREFIX}` before a command.'
         super().__init__(show_index, color)
-        self.prefix = self.suffix = '`'
+        self.prefix = self.suffix = ''
 
 
     def add_cog(
@@ -34,7 +34,7 @@ class HelpPaginator(Paginator):
         if not commands_list:
             return
 
-        page_title = title.qualified_name
+        page_title = f'{title.qualified_name} Commands'
         embed = self._new_page(page_title, "")
         self._add_command_fields(embed, page_title, commands_list)
 
@@ -78,27 +78,25 @@ class HelpPaginator(Paginator):
                 name="Aliases", value=f"{''.join(aliases)}", inline=False
             )
 
-        self._add_page(page)
+        self._add_page(page, True)
 
 
-    def add_index(self, title: str, bot: commands.Bot):
-
-        if self.show_index:
-            index = self._new_page(title=title, description=self.opening_note)
-
-            for page_no, page in enumerate(self._pages, 1):
-                content = " | ".join([i.name for i in page.fields])
-
-                index.add_field(
-                    name=f"{page_no}) {page.title}",
-                    value=f'{self.prefix}{content}{self.suffix}',
-                    inline=False,
-                )
-            index.set_footer(text=self.ending_note)
-            self._pages.insert(0, index)
-
+    def _add_page(self, page: discord.Embed, command: bool=False):
+        """
+        Add a page to the paginator
+        Args:
+            page (discord.Embed): The page to add
+            command (bool): True for command pages 
+        """
+        if command:
+            page_footer = (
+                "<required input> [optional input]\n" + self.ending_note
+            )
         else:
-            self._pages[0].description = bot.description
+            page_footer = self.ending_note
+
+        page.set_footer(text=page_footer)
+        self._pages.append(page)
 
 
 class CustomHelp(PrettyHelp):
@@ -106,7 +104,6 @@ class CustomHelp(PrettyHelp):
         super().__init__(**options)
         self.paginator = HelpPaginator(color=self.color, show_index=options.pop('show_index', True))
         self.ending_note = (
-            "<required input> [optional input]\n"
             "Type `{help.clean_prefix}{help.invoked_with} command` for more info on a command.\n"
             "You can also type `{help.clean_prefix}{help.invoked_with} category` for more info on a category."
         )
@@ -177,3 +174,45 @@ class CustomHelp(PrettyHelp):
             return await self.send_command_help(cmd)
 
 
+
+    async def send_bot_help(self, mapping: dict):
+        bot = self.context.bot
+        channel = self.get_destination()
+        async with channel.typing():
+            mapping = {name: [] for name in mapping}
+            help_filtered = (
+                filter(lambda c: c.name != "help", bot.commands)
+                if len(bot.commands) > 1
+                else bot.commands
+            )
+            for cmd in await self.filter_commands(
+                help_filtered,
+                sort=self.sort_commands,
+            ):
+                mapping[cmd.cog].append(cmd)
+
+            # filter out the empty cog and empty command_list
+            mapping = {cog: command_list for cog, command_list in mapping.items() if (command_list and cog)}
+            sorted_map = sorted(
+                mapping.items(),
+                key=lambda cg: cg[0].qualified_name
+                if isinstance(cg[0], commands.Cog)
+                else str(cg[0]),
+            )
+
+        title = self.index_title
+        description = self.paginator.opening_note
+        index = self.paginator._new_page(title=title, description=description)
+
+        for page_no, (cog, command_list) in enumerate(sorted_map, 1):
+            content = " | ".join([cmd.name for cmd in command_list])
+
+            index.add_field(
+                name=f"{page_no}) {cog.qualified_name}",
+                value=f'{content}',
+                inline=False,
+            )
+        index.set_footer(text=self.paginator.ending_note)
+        self.paginator._pages = [index]
+
+        await self.send_pages()
