@@ -121,8 +121,8 @@ class BotEvents(commands.Cog):
         async with locks[guild.id]:
             refresh_data(guild)
             intro_msg = (
-                "Let's get ready to gamble! Type `$wallet` to view your "\
-                "coins, and `$gamble <amount>` to start a bet. You may also "\
+                "Let's get ready to gamble! Type `$wallet` to view your "
+                "coins, and `$gamble <amount>` to start a bet. You may also "
                 "type `$help` for more information on all the commands."
             )
 
