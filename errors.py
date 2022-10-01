@@ -41,7 +41,7 @@ class RewardError(CommandError):
         else:
             time_msg = f'{time_left} mins'
 
-        self.message = f'Reward already claimed. Please wait {time_msg}'
+        self.message = f'Reward already claimed. Please wait another {time_msg}'
 
 
 class TransactionPairError(CommandError):
