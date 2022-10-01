@@ -48,7 +48,7 @@ class Action(commands.Cog):
     async def refresh(self, ctx: Context) -> None:
         refresh_data(ctx.guild)
         # self.bot.dispatch('guild_join', ctx.guild)
-        await ctx.channel.send("`Data refreshed!`")
+        await ctx.channel.send("Data refreshed!")
 
 
     @commands.command(
