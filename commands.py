@@ -53,10 +53,12 @@ class Action(commands.Cog):
     @commands.command(
         aliases=['g'], 
         brief='Bet coins to double or nothing.',
-        usage='''<amount>
+        usage='''
+            <amount>
             <amount> [opponent]
             all
-            all [opponent]'''
+            all [opponent]
+        '''
     )
     async def gamble(
         self, 
@@ -148,7 +150,9 @@ class Action(commands.Cog):
         aliases=['y'], 
         brief='Bet all coins.',
         usage='''
-            [opponent]'''
+            no args
+            [opponent]
+        '''
     )
     async def yolo(
         self, 
@@ -202,8 +206,10 @@ class Action(commands.Cog):
     @commands.command(
         aliases=['s'], 
         brief='Send coins to others.',
-        usage='''<amount> <recipient>
-            all <recipient>'''
+        usage='''
+            <amount> <recipient>
+            all <recipient>
+        '''
     )
     async def send(self, ctx: Context, amount: str, receiver_name: str) -> None:
         async with locks[ctx.guild.id]:
@@ -265,10 +271,12 @@ class Display(commands.Cog):
 
     @commands.command(
         aliases=['w'], 
-        brief='Show total coins.',
+        brief='Show total coins of indicated members.',
         usage='''
-            [player1] [player2] ...
-            all'''
+            no args
+            [player1] [player2] [player3] ...
+            group
+        '''
     )
     async def wallet(
         self, 
@@ -284,13 +292,15 @@ class Display(commands.Cog):
             except FileNotFoundError:
                 raise DataNotFound()
 
-            if gambler_list == ('all',):
+            if gambler_list[0] == 'group':
                 content = ""
                 for member in data['members'].values():
                     if ctx.guild.get_member(member['id']) is not None:
                         content += f"{member['display_name']}: {member['coins']} coins\n"
 
                 await ctx.channel.send(content)
+
+                # this is for future implementation of pagination
                 '''
                 content = content * 10
                 page = discord.Embed(title='this is title', description=content,text=content, color=0x00ff00)
@@ -338,12 +348,15 @@ class Display(commands.Cog):
 
     @commands.command(
         aliases=['sc'], 
-        brief='Show the total win-loss record of a player, or the score between 2 players.',
+        brief='Show the total win-loss record of an individial player or a pair, if they already gambled versus each other.',
         usage='''
-            [player1]
-            all
-            [player1] [player2]'''
-        )
+            no args
+            [other_player]
+            group
+            [any_player] [any_player]
+            [any_player] group
+        '''
+    )
     async def score(
         self, 
         ctx: Context, 
@@ -359,7 +372,7 @@ class Display(commands.Cog):
             except FileNotFoundError:
                 raise DataNotFound()
 
-            if gambler_name == 'all' and opponent_name is None:
+            if gambler_name == 'group' and opponent_name is None:
                 content = ""
                 for member in data['members'].values():
                     if ctx.guild.get_member(member['id']) is not None:
@@ -379,20 +392,20 @@ class Display(commands.Cog):
             if gambler is None:
                 raise InvalidNameError()
 
-            if gambler_name == opponent_name:
-                raise InvalidPairError()
-
             if opponent_name is None:
                 wins = gambler['wins']
                 losses = gambler['losses']
                 await ctx.channel.send(f"{gambler['display_name']}: {wins} W - {losses} L")
                 return
 
-            elif opponent_name == 'all':
+            elif gambler_name == opponent_name:
+                raise InvalidPairError()
+
+            elif opponent_name == 'group':
                 if len(gambler['wins_per_mem']) == 0:
                     raise TransactionPairError(gambler['display_name'], 'other members', 'score')
 
-                content = f"{gambler['display_name']} scores:\n"
+                content = f"{gambler['display_name']} scores: (W - L)\n"
                 for other_id in gambler['wins_per_mem']:
                     other = data['members'][other_id]
                     other_name = other['display_name']
@@ -423,11 +436,14 @@ class Display(commands.Cog):
             
     @commands.command(
         aliases=['t'], 
-        brief='Show the accumulative transfers of a single player, or the transfers between 2 players.',
+        brief='Show the accumulative transfers of an individual player, or between 2 players, if they already had a transaction.',
         usage='''
-            [player1]
-            all
-            [player1] [player2]'''
+            no args
+            [other_player]
+            group
+            [any_player] [any_player]
+            [any_player] group
+        '''
     )
     async def transfers(
         self, 
@@ -443,7 +459,7 @@ class Display(commands.Cog):
             except FileNotFoundError:
                 raise DataNotFound()
             
-            if gambler_name == 'all' and opponent_name is None:
+            if gambler_name == 'group' and opponent_name is None:
                 content = ""
                 for member in data['members'].values():
                     if ctx.guild.get_member(member['id']) is not None:
@@ -461,12 +477,10 @@ class Display(commands.Cog):
                 for member in data['members'].values():
                     if gambler_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
                         gambler = member
+                        break
 
             if gambler is None:
                 raise InvalidNameError()
-
-            if gambler_name == opponent_name:
-                raise InvalidPairError()
 
             if opponent_name is None:
                 if gambler['transfers'] < 0:
@@ -475,8 +489,10 @@ class Display(commands.Cog):
                     await ctx.channel.send(f"{gambler['display_name']} donated a total of {gambler['transfers']} coins")
                 return
 
+            if gambler_name == opponent_name:
+                raise InvalidPairError()
 
-            elif opponent_name == 'all':
+            elif opponent_name == 'group':
                 if len(gambler['transfers_per_mem']) == 0:
                     raise TransactionPairError(gambler['display_name'], 'other members', 'transfers')
 
