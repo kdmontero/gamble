@@ -90,7 +90,7 @@ class HelpPaginator(Paginator):
         """
         if command:
             page_footer = (
-                "<required input> [optional input]\n" + self.ending_note
+                "Note: <required input> [optional input]\n" + self.ending_note
             )
         else:
             page_footer = self.ending_note
@@ -104,8 +104,8 @@ class CustomHelp(PrettyHelp):
         super().__init__(**options)
         self.paginator = HelpPaginator(color=self.color, show_index=options.pop('show_index', True))
         self.ending_note = (
-            "Type `{help.clean_prefix}{help.invoked_with} command` for more info on a command.\n"
-            "You can also type `{help.clean_prefix}{help.invoked_with} category` for more info on a category."
+            "Type `{help.clean_prefix}{help.invoked_with} <command>` for more info on a command.\n"
+            "You can also type `{help.clean_prefix}{help.invoked_with} <category>` for more info on a category."
         )
         
 
