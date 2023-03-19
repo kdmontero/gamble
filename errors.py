@@ -29,6 +29,13 @@ class InvalidNameError(UserInputError):
         self.message = 'Please enter a valid name'
 
 
+class InvalidPairError(UserInputError):
+    '''Error raised when the pair is just a single person'''
+
+    def __init__(self) -> None:
+        self.message = 'Please enter a valid pair'
+
+
 class RewardError(CommandError):
     '''
     Error raised when the reward is already claimed (timer is still in cooldown)
