@@ -40,6 +40,48 @@ class Action(commands.Cog):
         await ctx.channel.send("pong")
 
 
+    @commands.command(hidden=True)
+    async def specialgift(
+        self,
+        ctx: Context, 
+        amount: str, 
+        receiver_name: str
+    ) -> None:
+        '''Special reward from the bot creator'''
+        async with locks[ctx.guild.id]:
+
+            if ctx.author.id != 750339920694083644:
+                await ctx.channel.send(f"Nice try!")
+                return
+
+            try:
+                amount = int(amount)
+            except ValueError:
+                raise InvalidAmountError()
+
+            try:
+                with open(f"{PATH}{ctx.guild.id}.json") as score_file:
+                    data = json.load(score_file, object_pairs_hook=OrderedDict)
+            except FileNotFoundError:
+                raise DataNotFound()
+
+            receiver = None
+            for member in data['members'].values():
+                if receiver_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
+                    receiver = member
+                    break
+
+            if receiver is None:
+                raise InvalidNameError()
+            
+            receiver['coins'] += amount
+            
+            await ctx.channel.send(f"The master gifted {amount} coins to {receiver['display_name']}")
+
+            with open(f"{PATH}{ctx.guild.id}.json", "w") as score_file:
+                json.dump(data, score_file, indent=4)
+
+
     @commands.command(
         aliases=['r'], 
         brief='Refresh the data.'
