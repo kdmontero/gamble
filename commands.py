@@ -139,11 +139,13 @@ class Action(commands.Cog):
             if opponent_name is not None:
                 opponent = None
                 for member in data['members'].values():
+                    if member == gambler:
+                        continue
                     if opponent_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
                         opponent = member
                         break
 
-                if opponent is None or opponent == gambler:
+                if opponent is None:
                     raise InvalidNameError()
 
                 if bet > opponent['coins']:
@@ -276,11 +278,13 @@ class Action(commands.Cog):
 
             receiver = None
             for member in data['members'].values():
+                if member == sender:
+                    continue
                 if receiver_name == member['display_name'] and ctx.guild.get_member(member['id']) is not None:
                     receiver = member
                     break
             
-            if sender == receiver or receiver is None:
+            if receiver is None:
                 raise InvalidNameError()
             
             sender['coins'] -= amount
@@ -334,13 +338,20 @@ class Display(commands.Cog):
             except FileNotFoundError:
                 raise DataNotFound()
 
-            if gambler_list[0] == 'group':
+            if len(gambler_list) == 0 or gambler_list is None:
+                gambler = data['members'][str(ctx.author.id)]
+                member_name = gambler['display_name']
+                coins = gambler['coins']
+                await ctx.channel.send(f"{member_name}: {coins} coins")
+                return
+                
+            elif gambler_list[0] == 'group':
                 content = ""
                 for member in data['members'].values():
                     if ctx.guild.get_member(member['id']) is not None:
                         content += f"{member['display_name']}: {member['coins']} coins\n"
-
                 await ctx.channel.send(content)
+                return
 
                 # this is for future implementation of pagination
                 '''
@@ -360,18 +371,6 @@ class Display(commands.Cog):
                 print(paginator.pages)
                 '''
 
-                return
-
-            elif len(gambler_list) == 0:
-                for member in data['members'].values():
-                    if member['display_name'] == ctx.author.display_name:
-                        member_name = member['display_name']
-                        coins = member['coins']
-                        await ctx.channel.send(
-                            f"{member_name}: {coins} coins"
-                        )
-                        return
-                
             else:
                 content = ""
                 for member in data['members'].values():
