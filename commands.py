@@ -4,13 +4,16 @@ import json
 import os
 import asyncio
 from time import localtime, strptime, strftime, mktime
-
 from collections import OrderedDict
 from random import randint, choice
 from typing import TYPE_CHECKING, Optional
 
 import discord # pip install discord
 from discord.ext import commands
+from discord.guild import Guild
+from discord.member import Member
+from discord.ext.commands.bot import Bot
+from discord.ext.commands.context import Context
 
 from const import INITIAL_COINS, MIN_REWARD, MAX_REWARD, PATH, COMMAND_PREFIX
 from events import locks, refresh_data
@@ -23,11 +26,6 @@ from errors import (
     TransactionPairError,
     DataNotFound,
 )
-
-from discord.guild import Guild
-from discord.member import Member
-from discord.ext.commands.bot import Bot
-from discord.ext.commands.context import Context
 
 
 class Action(commands.Cog):
@@ -380,6 +378,9 @@ class Display(commands.Cog):
             if gambler is None:
                 raise InvalidNameError()
 
+            if gambler_name == opponent_name:
+                raise InvalidPairError()
+
             if opponent_name is None:
                 wins = gambler['wins']
                 losses = gambler['losses']
@@ -462,7 +463,9 @@ class Display(commands.Cog):
 
             if gambler is None:
                 raise InvalidNameError()
-        
+
+            if gambler_name == opponent_name:
+                raise InvalidPairError()
 
             if opponent_name is None:
                 if gambler['transfers'] < 0:
