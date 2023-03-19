@@ -62,7 +62,9 @@ class HelpPaginator(Paginator):
         )
 
         if command.usage:
-            args = command.usage.splitlines()
+            args = command.usage.strip().splitlines()
+            if args[0] == 'no args':
+                args[0] = ''
             usage_list = [prefix_command + ' ' + arg.strip() for arg in args]
             usage_body = '\n'.join(usage_list)
         else:
