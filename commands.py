@@ -22,6 +22,7 @@ from errors import (
     NotEnoughCoinsError, 
     InvalidAmountError, 
     InvalidNameError,
+    InvalidPairError,
     RewardError,
     TransactionPairError,
     DataNotFound,
