@@ -104,7 +104,7 @@ class HelpPaginator(Paginator):
 class CustomHelp(PrettyHelp):
     def __init__(self, **options):
         super().__init__(**options)
-        self.paginator = HelpPaginator(color=self.color, show_index=options.pop('show_index', True))
+        self.paginator = HelpPaginator(show_index=options.pop('show_index', True))
         self.ending_note = (
             "Type `{help.clean_prefix}{help.invoked_with} <command>` for more info on a command.\n"
             "You can also type `{help.clean_prefix}{help.invoked_with} <category>` for more info on a category."
